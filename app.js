@@ -10,7 +10,7 @@
    data from your Google Sheet when they load the page.
    (Without this, only YOUR browser sees admin edits.)
 ========================================================= */
-const APPS_SCRIPT_URL = 'PASTE_YOUR_URL_HERE';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw9Ovj5v9zDU0FQpH0Asm1pbLpDYsL2VCJRNpROwHLroBQnRjePJV02pZyM7zTrAvNJ/exec';
 // Example: 'https://script.google.com/macros/s/AKfycby.../exec'
 
 /* ---------- DEFAULT DATA ---------- */

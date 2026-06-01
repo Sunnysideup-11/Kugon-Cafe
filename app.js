@@ -1,5 +1,5 @@
 /* =========================================================
-   HALO BEANS CAFÉ — simplified front-end
+   KUGON CAFÉ — simplified front-end
    No auth, no cart. Browse + product details + order popup.
    Data can be overridden by admin.html via localStorage 'kugon_data'.
 ========================================================= */

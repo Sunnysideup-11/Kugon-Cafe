@@ -117,23 +117,6 @@
       font-family: var(--font-display); font-size: 1.8rem; font-weight: 600;
       margin: 0 0 8px; letter-spacing: -.01em;
     }
-    .login-tabs {
-      display: flex; gap: 4px;
-      background: var(--bg); padding: 4px;
-      border-radius: var(--radius-pill);
-      margin-bottom: 24px;
-      border: 1px solid var(--line);
-    }
-    .login-tab {
-      flex: 1; padding: 9px 12px;
-      border-radius: var(--radius-pill);
-      font-size: .9rem; font-weight: 600;
-      color: var(--ink-soft);
-      transition: background .2s, color .2s;
-    }
-    .login-tab.is-active {
-      background: var(--ink); color: var(--bg);
-    }
 
     /* User badge shown in admin head when logged in */
     .user-badge {
@@ -692,52 +675,19 @@
     <!-- LOGIN SCREEN -->
     <section class="login-wrap" id="loginScreen">
       <div class="login-card">
-        <div class="login-tabs">
-          <button class="login-tab is-active" data-logintab="login">Log In</button>
-          <button class="login-tab" data-logintab="signup">Sign Up</button>
-        </div>
-
-        <div data-loginpanel="login">
-          <h2>Welcome back</h2>
-          <p class="muted">Admin or employee.</p>
-          <form id="loginForm" style="display:flex;flex-direction:column;gap:14px;margin-top:18px">
-            <div class="field">
-              <label>Username</label>
-              <input type="text" name="username" required autofocus autocomplete="username" />
-            </div>
-            <div class="field">
-              <label>Password</label>
-              <input type="password" name="password" required autocomplete="current-password" />
-            </div>
-            <button class="btn btn--primary btn--full" type="submit">Log In</button>
-          </form>
-        </div>
-
-        <div data-loginpanel="signup" hidden>
-          <h2>Create employee account</h2>
-          <p class="muted">For staff access — Products, Sales, and Inventory.</p>
-          <form id="signupForm" style="display:flex;flex-direction:column;gap:14px;margin-top:18px">
-            <div class="field">
-              <label>Full name</label>
-              <input type="text" name="name" required autocomplete="name" />
-            </div>
-            <div class="field">
-              <label>Username (letters, numbers, underscore)</label>
-              <input type="text" name="username" required pattern="[a-zA-Z0-9_]{3,}" autocomplete="username" />
-              <div class="field__hint">At least 3 characters.</div>
-            </div>
-            <div class="field">
-              <label>Password</label>
-              <input type="password" name="password" required minlength="4" autocomplete="new-password" />
-              <div class="field__hint">At least 4 characters.</div>
-            </div>
-            <div class="field">
-              <label>Confirm password</label>
-              <input type="password" name="confirmPassword" required autocomplete="new-password" />
-            </div>
-            <button class="btn btn--primary btn--full" type="submit">Create Account</button>
-          </form>
-        </div>
+        <h2>Sign in</h2>
+        <p class="muted">Admin or employee login. Need an account? Ask the admin.</p>
+        <form id="loginForm" style="display:flex;flex-direction:column;gap:14px;margin-top:18px">
+          <div class="field">
+            <label>Username</label>
+            <input type="text" name="username" required autofocus autocomplete="username" />
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" name="password" required autocomplete="current-password" />
+          </div>
+          <button class="btn btn--primary btn--full" type="submit">Log In</button>
+        </form>
       </div>
     </section>
 
@@ -1043,7 +993,7 @@
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px;flex-wrap:wrap">
               <div>
                 <h2 style="margin-bottom:4px">Employee Accounts</h2>
-                <p class="help" style="margin:0">Anyone signed up as an employee has access to Products, Sales, and Inventory.</p>
+                <p class="help" style="margin:0">Employees you add here can log in to access Products, Sales, and Inventory.</p>
               </div>
               <button class="btn btn--primary btn--sm" id="addEmpBtn">+ Add Employee</button>
             </div>
@@ -1633,17 +1583,6 @@
     refreshSheetsStatus();
   }
 
-  /* Login form tabs (Log In / Sign Up) */
-  document.querySelectorAll('.login-tab').forEach(t => {
-    t.addEventListener('click', () => {
-      document.querySelectorAll('.login-tab').forEach(x => x.classList.remove('is-active'));
-      t.classList.add('is-active');
-      document.querySelectorAll('[data-loginpanel]').forEach(p => {
-        p.hidden = p.dataset.loginpanel !== t.dataset.logintab;
-      });
-    });
-  });
-
   /* Login submit */
   document.getElementById('loginForm').addEventListener('submit', e => {
     e.preventDefault();
@@ -1682,36 +1621,6 @@
       return;
     }
     toast('Invalid username or password', 'error');
-  });
-
-  /* Sign Up (employee) */
-  document.getElementById('signupForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const name = (fd.get('name') || '').toString().trim();
-    const username = (fd.get('username') || '').toString().trim().toLowerCase();
-    const password = (fd.get('password') || '').toString();
-    const confirm = (fd.get('confirmPassword') || '').toString();
-
-    if (password !== confirm) return toast('Passwords don\'t match', 'error');
-    if (username === 'admin') return toast('That username is reserved', 'error');
-    if ((state.employees || []).some(emp => emp.username.toLowerCase() === username)) {
-      return toast('Username already taken — try another', 'error');
-    }
-
-    state.employees = state.employees || [];
-    state.employees.push({
-      id: 'e' + Date.now().toString(36),
-      username, name, password,
-      createdAt: new Date().toISOString(),
-    });
-    saveData();
-    toast('Account created — log in below', 'success');
-    // Switch back to login tab and pre-fill username
-    document.querySelector('.login-tab[data-logintab="login"]').click();
-    document.querySelector('#loginForm [name="username"]').value = username;
-    document.querySelector('#loginForm [name="password"]').focus();
-    e.target.reset();
   });
 
   /* Logout */
@@ -2552,7 +2461,7 @@ function safeParse(s, fallback) {
     }
     if (!list) return;
     if (emps.length === 0) {
-      list.innerHTML = '<div class="empty-state">No employee accounts yet. Click "+ Add Employee" or wait for someone to sign up on the login page.</div>';
+      list.innerHTML = '<div class="empty-state">No employee accounts yet. Click "+ Add Employee" to create one.</div>';
       return;
     }
     const sorted = [...emps].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));

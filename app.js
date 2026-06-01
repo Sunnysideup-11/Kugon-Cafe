@@ -98,14 +98,14 @@ const DEFAULT_DATA = {
     phone: '+63 2 123 4567',
     phoneHref: 'tel:+6321234567',
     email: 'hello@kugoncafe.com',
-    mapLat: 15.4758729,
-    mapLng: 120.585398,
+    mapLat: 15.4837495,
+    mapLng: 120.5904362,
     mapZoom: 17,
   },
   orderLinks: {
     foodpanda: 'https://www.foodpanda.ph/',
     grab: 'https://food.grab.com/ph/en/',
-    facebook: 'https://www.facebook.com/',
+    facebook: 'https://www.facebook.com/profile.php?id=61590405332745',
   },
   todaysPour: {
     name: 'Ethiopia Yirgacheffe',

@@ -1495,14 +1495,14 @@
       phone: '+63 2 123 4567',
       phoneHref: 'tel:+6321234567',
       email: 'hello@kugoncafe.com',
-      mapLat: 15.4758729,
-      mapLng: 120.585398,
+      mapLat: 15.4837495,
+      mapLng: 120.5904362,
       mapZoom: 17,
     },
     orderLinks: {
       foodpanda: 'https://www.foodpanda.ph/',
       grab: 'https://food.grab.com/ph/en/',
-      facebook: 'https://www.facebook.com/',
+      facebook: 'https://www.facebook.com/profile.php?id=61590405332745',
     },
     todaysPour: {
       name: 'Ethiopia Yirgacheffe',
@@ -3509,7 +3509,7 @@ function safeParse(s, fallback) {
   async function adminInitialSync() {
     document.body.dataset.syncing = 'true';
     setLoginEnabled(false);
-    makeSyncBanner('Syncing from Google Sheet…');
+    makeSyncBanner('Syncing…');
 
     try {
       const url = `${APPS_SCRIPT_URL}?action=getAll&t=${Date.now()}`;
@@ -3536,10 +3536,10 @@ function safeParse(s, fallback) {
       };
       state.sheets.lastPull = new Date().toISOString();
       localStorage.setItem('kugon_data', JSON.stringify(state));
-      finishSyncBanner('ok', '✓ Synced — login with latest credentials');
+      finishSyncBanner('ok', '✓ Ready');
     } catch (err) {
       console.warn('Initial sync failed:', err);
-      finishSyncBanner('err', '⚠ Could not sync — using local data');
+      finishSyncBanner('err', '⚠ Using local data');
     } finally {
       document.body.removeAttribute('data-syncing');
       setLoginEnabled(true);
@@ -3552,7 +3552,7 @@ function safeParse(s, fallback) {
     const failsafe = setTimeout(() => {
       document.body.removeAttribute('data-syncing');
       setLoginEnabled(true);
-      finishSyncBanner('err', '⚠ Sync timed out — using local data');
+      finishSyncBanner('err', '⚠ Sync timed out');
     }, 8000);
     await adminInitialSync();
     clearTimeout(failsafe);

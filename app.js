@@ -494,7 +494,10 @@ async function trySyncFromSheets() {
     : (DATA.sheets && DATA.sheets.appsScriptUrl);
   if (!url) return;
   try {
-    const res = await fetch(`${url}?action=getAll`, { method: 'GET' });
+    const res = await fetch(`${url}?action=getAll&t=${Date.now()}`, {
+      method: 'GET',
+      cache: 'no-store',
+    });
     if (!res.ok) throw new Error('Fetch failed: ' + res.status);
     const json = await res.json();
     if (!json.ok || !json.data) return;

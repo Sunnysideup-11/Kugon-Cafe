@@ -2426,13 +2426,18 @@ function safeParse(s, fallback) {
     if (!url) throw new Error('Apps Script URL not set');
     let res;
     if (action === 'getAll' || action === 'ping') {
-      res = await fetch(`${url}?action=${action}`, { method: 'GET' });
+      // Cache-bust GET requests so we always get fresh data
+      res = await fetch(`${url}?action=${action}&t=${Date.now()}`, {
+        method: 'GET',
+        cache: 'no-store',
+      });
     } else {
       res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action, data: payload }),
         redirect: 'follow',
+        cache: 'no-store',
       });
     }
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -3458,8 +3463,64 @@ function safeParse(s, fallback) {
     toast('Recipe saved', 'success');
   });
 
+  /* =========================================================
+     INITIAL SHEET SYNC ON PAGE LOAD
+     Pulls the latest data from the sheet BEFORE login so that:
+     - A fresh browser sees the current admin list (latest passwords, photos)
+     - Login validates against real data, not the seeded defaults
+  ========================================================= */
+  async function adminInitialSync() {
+    // Show a non-blocking status banner so user knows we're syncing
+    const banner = document.createElement('div');
+    banner.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--ink);color:var(--cream);padding:10px 18px;border-radius:99px;font-size:.85rem;box-shadow:0 6px 20px rgba(0,0,0,.15);transition:opacity .3s';
+    banner.innerHTML = '⏳ Syncing from Google Sheet…';
+    document.body.appendChild(banner);
+
+    try {
+      const url = `${APPS_SCRIPT_URL}?action=getAll&t=${Date.now()}`;
+      const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      if (!json.ok || !json.data) throw new Error(json.error || 'No data');
+
+      const r = json.data;
+      // Merge into state — sheet is the source of truth for everything below
+      state = {
+        ...state,
+        products: (r.products && r.products.length) ? r.products : state.products,
+        contact: { ...state.contact, ...(r.contact || {}) },
+        orderLinks: { ...state.orderLinks, ...(r.orderLinks || {}) },
+        todaysPour: { ...state.todaysPour, ...(r.todaysPour || {}) },
+        sales: r.sales || state.sales,
+        ingredients: r.ingredients || state.ingredients,
+        restocks: r.restocks || state.restocks,
+        recipes: r.recipes || state.recipes,
+        employees: r.employees || state.employees,
+        admins: (r.admins && r.admins.length) ? r.admins : state.admins,
+        team: (r.team && r.team.length) ? r.team : state.team,
+        categories: (r.categories && r.categories.length) ? r.categories : state.categories,
+      };
+      state.sheets.lastPull = new Date().toISOString();
+      localStorage.setItem('kugon_data', JSON.stringify(state));
+
+      banner.innerHTML = '✓ Synced — login with your latest credentials';
+      banner.style.background = 'var(--success, #16a34a)';
+    } catch (err) {
+      console.warn('Initial sync failed:', err);
+      banner.innerHTML = '⚠ Could not sync from sheet — using local data';
+      banner.style.background = 'var(--danger, #dc2626)';
+    }
+    setTimeout(() => {
+      banner.style.opacity = '0';
+      setTimeout(() => banner.remove(), 400);
+    }, 2200);
+  }
+
   /* ---------- INIT ---------- */
-  checkSession();
+  (async () => {
+    await adminInitialSync();
+    checkSession();
+  })();
   </script>
 </body>
 </html>

@@ -1,8 +1,17 @@
 /* =========================================================
-   HALO BEANS CAFÉ — simplified front-end
+   KUGON CAFÉ — simplified front-end
    No auth, no cart. Browse + product details + order popup.
    Data can be overridden by admin.html via localStorage 'kugon_data'.
 ========================================================= */
+
+/* =========================================================
+   ⚠️  PASTE YOUR APPS SCRIPT WEB APP URL BELOW
+   This makes every visitor automatically fetch the latest
+   data from your Google Sheet when they load the page.
+   (Without this, only YOUR browser sees admin edits.)
+========================================================= */
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw9Ovj5v9zDU0FQpH0Asm1pbLpDYsL2VCJRNpROwHLroBQnRjePJV02pZyM7zTrAvNJ/exec';
+// Example: 'https://script.google.com/macros/s/AKfycby.../exec'
 
 /* ---------- DEFAULT DATA ---------- */
 const DEFAULT_PRODUCTS = [
@@ -464,7 +473,10 @@ document.getElementById('contactForm').addEventListener('submit', e => {
 
 /* ---------- SHEETS SYNC (optional, fetches latest from Apps Script on page load) ---------- */
 async function trySyncFromSheets() {
-  const url = DATA.sheets && DATA.sheets.appsScriptUrl;
+  // Prefer the baked-in constant; fall back to localStorage (admin-configured)
+  const url = (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'PASTE_YOUR_URL_HERE')
+    ? APPS_SCRIPT_URL
+    : (DATA.sheets && DATA.sheets.appsScriptUrl);
   if (!url) return;
   try {
     const res = await fetch(`${url}?action=getAll`, { method: 'GET' });

@@ -1,0 +1,3401 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin · Cafe Kugon</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http%3A//www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23ff2222'/%3E%3Cpath d='M32 8 L50 22 L50 18 L46 14 Z' fill='%23ffffff' opacity='.9'/%3E%3Ctext x='32' y='50' font-family='Arial Black,sans-serif' font-size='36' font-weight='900' fill='white' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E" />
+  <style>
+    /* Fix: [hidden] attribute must beat CSS display rules */
+    [hidden] { display: none !important; }
+
+    /* Admin-only overrides */
+    .admin-wrap { padding: 32px 0 80px; }
+    .admin-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 24px; flex-wrap: wrap; margin-bottom: 32px;
+    }
+    .admin-head h1 {
+      font-family: var(--font-display); font-size: 2rem; font-weight: 600;
+      margin: 0; letter-spacing: -.02em;
+    }
+    .admin-head__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .admin-layout {
+      display: grid; grid-template-columns: 220px 1fr; gap: 28px;
+    }
+    .admin-nav {
+      background: var(--paper); border: 1px solid var(--line);
+      border-radius: var(--radius-lg); padding: 12px;
+      align-self: start; position: sticky; top: 20px;
+    }
+    .admin-nav__item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-radius: var(--radius);
+      font-size: .92rem; font-weight: 500; color: var(--ink-2);
+      cursor: pointer; transition: background .2s, color .2s;
+      width: 100%; text-align: left;
+    }
+    .admin-nav__item:hover { background: var(--bg); }
+    .admin-nav__item.is-active { background: var(--ink); color: var(--bg); }
+    .admin-nav__item svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    .admin-panel {
+      background: var(--paper); border: 1px solid var(--line);
+      border-radius: var(--radius-lg); padding: 32px;
+    }
+    .admin-panel h2 {
+      font-family: var(--font-display); font-size: 1.6rem; font-weight: 600;
+      margin: 0 0 8px; letter-spacing: -.01em;
+    }
+    .admin-panel .help { color: var(--ink-soft); font-size: .92rem; margin: 0 0 24px; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+    .field label, .field__label {
+      font-size: .8rem; font-weight: 600; color: var(--ink-2);
+      text-transform: uppercase; letter-spacing: .08em;
+    }
+    .field input, .field textarea, .field select {
+      padding: 12px 14px; border-radius: var(--radius);
+      border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+      font-size: .95rem; transition: border-color .2s, box-shadow .2s;
+    }
+    .field input:focus, .field textarea:focus, .field select:focus {
+      outline: 0; border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+    }
+    .field textarea { resize: vertical; min-height: 80px; font-family: inherit; }
+    .field__hint { font-size: .8rem; color: var(--ink-soft); margin-top: 2px; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .field-row--3 { grid-template-columns: 1fr 1fr 1fr; }
+
+    /* Product table */
+    .prod-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    .prod-table th, .prod-table td {
+      text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--line);
+    }
+    .prod-table th {
+      font-size: .72rem; text-transform: uppercase; letter-spacing: .1em;
+      color: var(--ink-soft); font-weight: 600;
+    }
+    .prod-table tr:last-child td { border-bottom: 0; }
+    .prod-swatch { width: 28px; height: 28px; border-radius: 8px; display: inline-block; }
+    .prod-actions { display: flex; gap: 6px; justify-content: flex-end; }
+    .btn-icon-sm {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: grid; place-items: center;
+      border: 1px solid var(--line); background: var(--bg);
+      cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+    }
+    .btn-icon-sm:hover { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+    .btn-icon-sm.danger:hover { background: var(--danger); color: white; border-color: var(--danger); }
+
+    .save-bar {
+      position: sticky; bottom: 16px; z-index: 50;
+      background: var(--paper); border: 1px solid var(--line);
+      border-radius: var(--radius-pill); padding: 10px 14px 10px 20px;
+      margin-top: 24px; display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; box-shadow: var(--shadow);
+    }
+    .save-bar__status { font-size: .85rem; color: var(--ink-soft); }
+    .save-bar__status.is-dirty { color: var(--accent); font-weight: 600; }
+    .save-bar__status.is-saved { color: var(--success); font-weight: 600; }
+
+    /* Login */
+    .login-wrap {
+      min-height: 80vh; display: grid; place-items: center; padding: 40px 20px;
+    }
+    .login-card {
+      background: var(--paper); border: 1px solid var(--line);
+      border-radius: var(--radius-lg); padding: 36px; width: 100%; max-width: 460px;
+      box-shadow: var(--shadow);
+    }
+    .login-card h2 {
+      font-family: var(--font-display); font-size: 1.8rem; font-weight: 600;
+      margin: 0 0 8px; letter-spacing: -.01em;
+    }
+    .login-tabs {
+      display: flex; gap: 4px;
+      background: var(--bg); padding: 4px;
+      border-radius: var(--radius-pill);
+      margin-bottom: 24px;
+      border: 1px solid var(--line);
+    }
+    .login-tab {
+      flex: 1; padding: 9px 12px;
+      border-radius: var(--radius-pill);
+      font-size: .9rem; font-weight: 600;
+      color: var(--ink-soft);
+      transition: background .2s, color .2s;
+    }
+    .login-tab.is-active {
+      background: var(--ink); color: var(--bg);
+    }
+
+    /* User badge shown in admin head when logged in */
+    .user-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 14px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-pill);
+      font-size: .82rem; font-weight: 600;
+      margin-right: 4px;
+    }
+    .user-badge__role {
+      font-size: .65rem; text-transform: uppercase; letter-spacing: .14em;
+      padding: 2px 8px; border-radius: var(--radius-pill);
+      background: var(--paper);
+      color: var(--ink-soft);
+    }
+    .user-badge__role.is-admin {
+      background: var(--accent); color: var(--cream);
+    }
+
+    /* Role-based hiding: when body data-role="employee", admin-only stuff disappears */
+    body[data-role="employee"] [data-role-admin] { display: none !important; }
+
+    /* Categories bar */
+    .cat-bar {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 20px;
+      display: flex; flex-wrap: wrap;
+      align-items: center; gap: 12px;
+    }
+    .cat-bar__label {
+      font-size: .7rem; text-transform: uppercase; letter-spacing: .14em;
+      color: var(--ink-soft); font-weight: 600;
+    }
+    .cat-pills {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      flex: 1;
+    }
+    .cat-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 6px 5px 12px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-pill);
+      font-size: .82rem; font-weight: 500;
+      color: var(--ink);
+    }
+    .cat-pill__count {
+      font-size: .7rem;
+      color: var(--ink-soft);
+      margin-left: -2px;
+    }
+    .cat-pill__remove {
+      width: 20px; height: 20px;
+      display: grid; place-items: center;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--ink-soft);
+      transition: background .15s, color .15s;
+      cursor: pointer;
+      font-size: .8rem;
+    }
+    .cat-pill__remove:hover {
+      background: var(--danger); color: white;
+    }
+    .cat-add {
+      display: flex; gap: 6px; align-items: stretch;
+    }
+    .cat-add input {
+      padding: 7px 12px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--line);
+      background: var(--paper);
+      font-size: .85rem;
+      color: var(--ink);
+      width: 180px;
+    }
+    .cat-add input:focus {
+      outline: 0; border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+    }
+
+    /* Employees */
+    .emp-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    .emp-table th, .emp-table td {
+      text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--line);
+    }
+    .emp-table th {
+      font-size: .7rem; text-transform: uppercase; letter-spacing: .1em;
+      color: var(--ink-soft); font-weight: 600;
+    }
+    .emp-table tr:last-child td { border-bottom: 0; }
+    .emp-avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-2), var(--accent));
+      color: var(--cream);
+      display: grid; place-items: center;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: .85rem;
+    }
+    .emp-name {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .password-cell {
+      font-family: 'SF Mono', monospace;
+      font-size: .82rem;
+      color: var(--ink-soft);
+    }
+    .password-cell button {
+      background: transparent;
+      border: 0;
+      color: var(--ink-soft);
+      cursor: pointer;
+      margin-left: 4px;
+      font-size: .9rem;
+    }
+    .password-cell button:hover { color: var(--accent); }
+
+    /* Team grid in admin */
+    .team-grid-admin {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    .team-card-admin {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      text-align: center;
+      transition: transform .25s ease, box-shadow .25s ease;
+    }
+    .team-card-admin:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow);
+    }
+    .team-card-admin__photo {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      margin-bottom: 14px;
+      object-fit: cover;
+      display: block;
+    }
+    .team-card-admin__photo--placeholder {
+      display: grid;
+      place-items: center;
+      color: var(--ink-soft);
+      font-family: var(--font-display);
+      font-size: 2.2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent-2), var(--accent));
+      color: var(--cream);
+    }
+    .team-card-admin__name {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0 0 4px;
+    }
+    .team-card-admin__role {
+      font-size: .82rem;
+      color: var(--ink-soft);
+      margin: 0 0 12px;
+    }
+    .team-card-admin__actions {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .drive-card {
+      background: var(--bg); border: 1px dashed var(--line-2);
+      border-radius: var(--radius); padding: 18px; margin-bottom: 18px;
+    }
+    .drive-card h4 {
+      font-family: var(--font-display); margin: 0 0 6px; font-size: 1.05rem;
+    }
+    .drive-card ol { margin: 8px 0 0 18px; padding: 0; font-size: .9rem; line-height: 1.7; }
+    .drive-card code {
+      background: var(--paper); padding: 2px 6px; border-radius: 4px;
+      font-size: .85em; color: var(--accent);
+    }
+
+    .json-preview {
+      background: #1a1208; color: #e8c89a;
+      border-radius: var(--radius); padding: 16px;
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+      font-size: .8rem; max-height: 320px; overflow: auto;
+      white-space: pre; margin-top: 12px;
+    }
+
+    .image-dropzone {
+      border: 2px dashed var(--line-2);
+      border-radius: var(--radius);
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      background: var(--bg);
+      transition: border-color .2s, background .2s;
+    }
+    .image-dropzone:hover { border-color: var(--accent); background: var(--paper); }
+    .image-dropzone.is-dragover { border-color: var(--accent); background: var(--paper); }
+    #imagePreview {
+      max-width: 100%;
+      max-height: 220px;
+      border-radius: var(--radius);
+      margin: 0 auto 12px;
+      display: block;
+      object-fit: cover;
+    }
+    #imagePreviewWrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .prod-thumb {
+      width: 32px; height: 32px;
+      border-radius: 8px; object-fit: cover;
+      display: inline-block;
+    }
+
+    /* Sales */
+    .sales-entry {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .sale-items {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+      padding: 12px;
+      background: var(--paper);
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      margin-top: 6px;
+    }
+    .sale-item-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      font-size: .9rem;
+    }
+    .sale-item-row input {
+      width: 70px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: var(--bg);
+      text-align: right;
+    }
+    .sales-history-row {
+      display: grid;
+      grid-template-columns: 110px 1fr 1fr auto;
+      gap: 12px; align-items: center;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--bg);
+      margin-bottom: 8px;
+    }
+    .sales-history-row__date {
+      font-family: var(--font-display); font-weight: 600; font-size: .95rem;
+    }
+    .sales-history-row__total {
+      font-family: var(--font-display); font-weight: 700; color: var(--accent); font-size: 1.1rem;
+    }
+    .sales-history-row__items {
+      font-size: .85rem; color: var(--ink-soft);
+    }
+    .sales-history-row__items details summary { cursor: pointer; }
+    .sales-history-row__items details ul {
+      margin: 6px 0 0 16px; padding: 0; font-size: .82rem;
+    }
+
+    /* Inventory */
+    .inv-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin: 16px 0 28px;
+    }
+    .stat-card {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+    }
+    .stat-card__label {
+      font-size: .68rem; text-transform: uppercase; letter-spacing: .12em;
+      color: var(--ink-soft); font-weight: 600;
+    }
+    .stat-card__value {
+      font-family: var(--font-display); font-size: 1.5rem; font-weight: 700;
+      letter-spacing: -.02em; margin-top: 4px;
+    }
+    .stat-card__delta {
+      font-size: .78rem; color: var(--success); margin-top: 2px;
+    }
+    .stat-card__delta.warn { color: var(--danger); }
+
+    .inv-section { margin-top: 32px; }
+    .inv-section__head {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px; gap: 12px; flex-wrap: wrap;
+    }
+    .inv-section h3 {
+      font-family: var(--font-display); font-size: 1.2rem; font-weight: 600;
+      margin: 0;
+    }
+
+    .ing-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    .ing-table th, .ing-table td {
+      text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line);
+    }
+    .ing-table th {
+      font-size: .7rem; text-transform: uppercase; letter-spacing: .1em;
+      color: var(--ink-soft); font-weight: 600;
+    }
+    .ing-table tr:last-child td { border-bottom: 0; }
+    .ing-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .ing-table tr.low-stock td { background: color-mix(in srgb, var(--danger) 8%, transparent); }
+    .stock-pill {
+      display: inline-block;
+      padding: 2px 8px; border-radius: var(--radius-pill);
+      font-size: .7rem; font-weight: 600;
+    }
+    .stock-pill.ok { background: color-mix(in srgb, var(--success) 18%, transparent); color: var(--success); }
+    .stock-pill.low { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+    .stock-pill.empty { background: var(--paper); color: var(--ink-soft); }
+
+    .restock-card {
+      display: grid;
+      grid-template-columns: 110px 1fr auto auto;
+      gap: 12px; align-items: center;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--bg);
+      margin-bottom: 8px;
+    }
+    .restock-card__date {
+      font-family: var(--font-display); font-weight: 600; font-size: .9rem;
+    }
+    .restock-card__items {
+      font-size: .85rem; color: var(--ink-2);
+    }
+    .restock-card__total {
+      font-family: var(--font-display); font-weight: 700; font-size: 1rem; color: var(--accent);
+    }
+
+    /* Restock multi-row form */
+    .restock-item-row, .recipe-item-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr auto;
+      gap: 8px; margin-bottom: 8px; align-items: end;
+    }
+    .recipe-item-row { grid-template-columns: 2fr 1fr auto; }
+    .restock-item-row select,
+    .restock-item-row input,
+    .recipe-item-row select,
+    .recipe-item-row input {
+      padding: 10px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--bg);
+      font-size: .9rem;
+      color: var(--ink);
+    }
+    .restock-item-row .remove-row,
+    .recipe-item-row .remove-row {
+      width: 36px; height: 38px;
+      display: grid; place-items: center;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--danger);
+    }
+    .restock-item-row .remove-row:hover,
+    .recipe-item-row .remove-row:hover { background: var(--danger); color: white; border-color: var(--danger); }
+
+    .restock-total {
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: 12px 16px; background: var(--bg); border-radius: var(--radius);
+      border: 1px solid var(--line); margin-top: 4px;
+    }
+    .restock-total strong {
+      font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; color: var(--accent);
+    }
+
+    /* Recipe */
+    .recipe-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 16px; align-items: center;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--bg);
+      margin-bottom: 8px;
+    }
+    .recipe-row__name {
+      font-family: var(--font-display); font-weight: 600; font-size: 1rem;
+    }
+    .recipe-row__meta { font-size: .8rem; color: var(--ink-soft); margin-top: 2px; }
+    .recipe-row__cost {
+      text-align: right;
+      font-family: var(--font-display); font-weight: 700;
+      font-size: 1.05rem;
+    }
+    .recipe-row__cost small {
+      display: block; font-size: .7rem; font-weight: 500;
+      color: var(--ink-soft); text-transform: uppercase; letter-spacing: .08em;
+    }
+    .recipe-row__margin {
+      font-size: .82rem; padding: 4px 10px; border-radius: var(--radius-pill);
+      font-weight: 600;
+    }
+    .recipe-row__margin.good { background: color-mix(in srgb, var(--success) 18%, transparent); color: var(--success); }
+    .recipe-row__margin.bad { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+    .recipe-row__margin.none { background: var(--paper); color: var(--ink-soft); }
+    .recipe-summary {
+      background: var(--bg); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 14px 18px; margin-top: 8px;
+    }
+    .recipe-summary__row {
+      display: flex; justify-content: space-between; padding: 4px 0;
+      font-size: .92rem;
+    }
+    .recipe-summary__row--profit {
+      border-top: 1px solid var(--line); padding-top: 10px; margin-top: 4px;
+      font-size: 1rem;
+    }
+    .recipe-summary__row--profit strong {
+      color: var(--accent); font-family: var(--font-display);
+    }
+
+    .empty-state {
+      text-align: center; padding: 32px 16px;
+      color: var(--ink-soft); font-size: .9rem;
+      background: var(--bg); border: 1px dashed var(--line);
+      border-radius: var(--radius);
+    }
+
+    /* Sheets integration */
+    .sheets-status {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 18px;
+      border-radius: var(--radius);
+      background: var(--bg);
+      border: 1px solid var(--line);
+      margin-bottom: 20px;
+      font-size: .9rem;
+    }
+    .sheets-status__dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--ink-soft);
+      flex-shrink: 0;
+    }
+    .sheets-status.is-ok .sheets-status__dot { background: var(--success); }
+    .sheets-status.is-err .sheets-status__dot { background: var(--danger); }
+    .sheets-status.is-loading .sheets-status__dot {
+      background: var(--accent);
+      animation: pulse-dot 1s infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .35; }
+    }
+    .sheets-status__msg { flex: 1; }
+    .sheets-status__time { color: var(--ink-soft); font-size: .82rem; }
+
+    .sheets-actions {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-top: 16px;
+    }
+    .sheets-setup {
+      margin-top: 24px;
+      background: var(--bg);
+      border: 1px dashed var(--line-2);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+    }
+    .sheets-setup summary {
+      cursor: pointer;
+      padding: 4px 0;
+      font-size: .95rem;
+    }
+    .sheets-setup summary::marker { color: var(--accent); }
+    .sheets-setup ol {
+      margin: 12px 0; padding-left: 22px;
+      line-height: 1.85; font-size: .92rem;
+    }
+    .sheets-setup ol li { margin-bottom: 4px; }
+    .sheets-setup code {
+      background: var(--paper); padding: 2px 6px;
+      border-radius: 4px; font-size: .85em;
+      color: var(--accent);
+    }
+    .code-block-wrap {
+      position: relative;
+      margin: 10px 0 14px;
+    }
+    .code-block-wrap > button {
+      position: absolute;
+      top: 8px; right: 8px;
+      z-index: 2;
+    }
+    .code-block-wrap pre {
+      background: #1a1208; color: #e8c89a;
+      border-radius: var(--radius); padding: 16px;
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+      font-size: .78rem; line-height: 1.5;
+      max-height: 360px; overflow: auto;
+      white-space: pre; margin: 0;
+    }
+
+    @media (max-width: 720px) {
+      .admin-layout { grid-template-columns: 1fr; }
+      .admin-nav { position: static; }
+      .admin-nav { display: flex; flex-wrap: wrap; gap: 4px; }
+      .admin-nav__item { flex: 1 1 auto; }
+      .field-row, .field-row--3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- ============== NAV ============== -->
+  <header class="nav">
+    <div class="nav__inner container">
+      <a href="index.html" class="logo" aria-label="Cafe Kugon home">
+        <img src="images/kugon-logo.png" alt="Cafe Kugon" class="logo__img" />
+      </a>
+      <nav class="nav__links">
+        <span class="nav-link is-active">Admin Panel</span>
+      </nav>
+      <div class="nav__actions">
+        <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
+          <svg class="i-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          <svg class="i-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <a href="index.html" class="btn btn--ghost btn--sm">View Site</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- LOGIN SCREEN -->
+    <section class="login-wrap" id="loginScreen">
+      <div class="login-card">
+        <div class="login-tabs">
+          <button class="login-tab is-active" data-logintab="login">Log In</button>
+          <button class="login-tab" data-logintab="signup">Sign Up</button>
+        </div>
+
+        <div data-loginpanel="login">
+          <h2>Welcome back</h2>
+          <p class="muted">Admin or employee.</p>
+          <form id="loginForm" style="display:flex;flex-direction:column;gap:14px;margin-top:18px">
+            <div class="field">
+              <label>Username</label>
+              <input type="text" name="username" required autofocus autocomplete="username" />
+            </div>
+            <div class="field">
+              <label>Password</label>
+              <input type="password" name="password" required autocomplete="current-password" />
+            </div>
+            <button class="btn btn--primary btn--full" type="submit">Log In</button>
+          </form>
+        </div>
+
+        <div data-loginpanel="signup" hidden>
+          <h2>Create employee account</h2>
+          <p class="muted">For staff access — Products, Sales, and Inventory.</p>
+          <form id="signupForm" style="display:flex;flex-direction:column;gap:14px;margin-top:18px">
+            <div class="field">
+              <label>Full name</label>
+              <input type="text" name="name" required autocomplete="name" />
+            </div>
+            <div class="field">
+              <label>Username (letters, numbers, underscore)</label>
+              <input type="text" name="username" required pattern="[a-zA-Z0-9_]{3,}" autocomplete="username" />
+              <div class="field__hint">At least 3 characters.</div>
+            </div>
+            <div class="field">
+              <label>Password</label>
+              <input type="password" name="password" required minlength="4" autocomplete="new-password" />
+              <div class="field__hint">At least 4 characters.</div>
+            </div>
+            <div class="field">
+              <label>Confirm password</label>
+              <input type="password" name="confirmPassword" required autocomplete="new-password" />
+            </div>
+            <button class="btn btn--primary btn--full" type="submit">Create Account</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ADMIN PANEL -->
+    <section class="container admin-wrap" id="adminScreen" hidden>
+      <div class="admin-head">
+        <h1>Cafe Kugon · <em>Admin</em></h1>
+        <div class="admin-head__actions">
+          <span id="userBadge" class="user-badge"></span>
+          <button class="btn btn--ghost btn--sm" id="exportBtn" data-role-admin>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            Export JSON
+          </button>
+          <button class="btn btn--ghost btn--sm" id="importBtn" data-role-admin>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            Import JSON
+          </button>
+          <input type="file" id="importFile" accept="application/json" hidden />
+          <button class="btn btn--ghost btn--sm" id="resetBtn" data-role-admin>Reset All</button>
+          <button class="btn btn--ghost btn--sm" id="logoutBtn">Log Out</button>
+        </div>
+      </div>
+
+      <div class="admin-layout">
+        <aside class="admin-nav">
+          <button class="admin-nav__item" data-tab="profile">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            My Profile
+          </button>
+          <button class="admin-nav__item is-active" data-tab="contact" data-role-admin>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Contact & Map
+          </button>
+          <button class="admin-nav__item" data-tab="orderlinks" data-role-admin>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l4-4a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-4 4a5 5 0 0 0 7 7l1-1"/></svg>
+            Order Links
+          </button>
+          <button class="admin-nav__item" data-tab="products">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7L12 3 4 7l8 4 8-4z"/><path d="M4 7v10l8 4 8-4V7"/><path d="M12 11v10"/></svg>
+            Products
+          </button>
+          <button class="admin-nav__item" data-tab="team" data-role-admin>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Team
+          </button>
+          <button class="admin-nav__item" data-tab="sales">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Sales
+          </button>
+          <button class="admin-nav__item" data-tab="inventory">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg>
+            Inventory
+          </button>
+          <button class="admin-nav__item" data-tab="employees" data-role-admin>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Employees
+          </button>
+          <button class="admin-nav__item" data-tab="drive" data-role-admin>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            Google Sheets
+          </button>
+        </aside>
+
+        <div>
+          <!-- TAB: MY PROFILE (both roles) -->
+          <div class="admin-panel" data-panel="profile" hidden>
+            <h2>My Profile</h2>
+            <p class="help">Update your name or password. Your username can't be changed.</p>
+
+            <div class="profile-card" style="display:flex;align-items:center;gap:18px;margin-bottom:24px;padding:20px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--line)">
+              <div class="emp-avatar" id="profileAvatar" style="width:64px;height:64px;font-size:1.4rem"></div>
+              <div>
+                <div style="font-family:var(--font-display);font-size:1.4rem;font-weight:600" id="profileNameDisplay">—</div>
+                <div class="muted" id="profileUserDisplay">—</div>
+                <div class="muted" style="font-size:.82rem;margin-top:2px" id="profileRoleDisplay">—</div>
+              </div>
+            </div>
+
+            <form id="profileForm" style="display:flex;flex-direction:column;gap:14px;max-width:520px">
+              <div class="field">
+                <label>Profile photo</label>
+                <div class="image-dropzone" id="profileDropzone">
+                  <div id="profilePreviewWrap" hidden>
+                    <img id="profilePreview" alt="Preview" />
+                    <button type="button" class="btn btn--ghost btn--sm" id="profileRemoveImageBtn">Remove photo</button>
+                  </div>
+                  <div id="profileImageEmpty">
+                    <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+                    <p style="margin:8px 0 4px;font-size:.9rem">Click or drag to upload</p>
+                    <p class="field__hint" style="margin:0">A square photo looks best.</p>
+                  </div>
+                  <input type="file" id="profileFileInput" accept="image/*" hidden />
+                </div>
+              </div>
+              <div class="field">
+                <label>Display name</label>
+                <input type="text" name="name" required />
+              </div>
+              <div class="field">
+                <label>Username (read-only)</label>
+                <input type="text" name="username" readonly style="opacity:.7;cursor:not-allowed" />
+              </div>
+              <div class="field">
+                <label>New password (leave blank to keep current)</label>
+                <input type="password" name="newPassword" minlength="4" autocomplete="new-password" />
+              </div>
+              <div class="field">
+                <label>Confirm new password</label>
+                <input type="password" name="confirmPassword" autocomplete="new-password" />
+              </div>
+              <button type="submit" class="btn btn--primary btn--sm" style="align-self:flex-start">Save Profile</button>
+            </form>
+          </div>
+
+          <!-- TAB: CONTACT -->
+          <div class="admin-panel" data-panel="contact">
+            <h2>Contact & Location</h2>
+            <p class="help">Updates the contact section on the Contact page and the footer.</p>
+
+            <div class="field">
+              <label>Address (full, with line breaks)</label>
+              <textarea id="f_address" rows="3"></textarea>
+              <div class="field__hint">Use <code>&lt;br/&gt;</code> for line breaks. This shows on the Contact page.</div>
+            </div>
+            <div class="field">
+              <label>Address (short, one line)</label>
+              <input type="text" id="f_addressShort" />
+              <div class="field__hint">Shows in the footer.</div>
+            </div>
+            <div class="field">
+              <label>Business hours</label>
+              <textarea id="f_hours" rows="2"></textarea>
+              <div class="field__hint">Use <code>&lt;br/&gt;</code> for line breaks.</div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Phone</label>
+                <input type="text" id="f_phone" />
+              </div>
+              <div class="field">
+                <label>Email</label>
+                <input type="email" id="f_email" />
+              </div>
+            </div>
+            <div class="field-row--3 field-row">
+              <div class="field">
+                <label>Map latitude</label>
+                <input type="number" step="any" id="f_mapLat" />
+              </div>
+              <div class="field">
+                <label>Map longitude</label>
+                <input type="number" step="any" id="f_mapLng" />
+              </div>
+              <div class="field">
+                <label>Map zoom (1–20)</label>
+                <input type="number" min="1" max="20" id="f_mapZoom" />
+              </div>
+            </div>
+            <div class="field">
+              <label>Quick: paste a Google Maps short link</label>
+              <input type="text" id="f_mapShortLink" placeholder="https://maps.app.goo.gl/..." />
+              <div class="field__hint">Or paste any maps URL with <code>@lat,lng,zoom</code> — coordinates will be extracted.</div>
+            </div>
+          </div>
+
+          <!-- TAB: ORDER LINKS -->
+          <div class="admin-panel" data-panel="orderlinks" hidden>
+            <h2>Order Now Links</h2>
+            <p class="help">When customers click "Order Now", they see three platform buttons. Set the destination URLs here.</p>
+            <div class="field">
+              <label>Foodpanda URL</label>
+              <input type="url" id="f_foodpanda" />
+            </div>
+            <div class="field">
+              <label>Grab Food URL</label>
+              <input type="url" id="f_grab" />
+            </div>
+            <div class="field">
+              <label>Facebook page URL</label>
+              <input type="url" id="f_facebook" />
+            </div>
+          </div>
+
+          <!-- TAB: PRODUCTS -->
+          <div class="admin-panel" data-panel="products" hidden>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px;flex-wrap:wrap">
+              <div>
+                <h2 style="margin-bottom:4px">Products</h2>
+                <p class="help" style="margin:0">Add, edit, or remove menu items.</p>
+              </div>
+              <button class="btn btn--primary btn--sm" id="addProductBtn">+ Add Product</button>
+            </div>
+
+            <!-- Categories management -->
+            <div class="cat-bar">
+              <div class="cat-bar__label">Categories</div>
+              <div class="cat-pills" id="catPills"></div>
+              <form class="cat-add" id="addCategoryForm">
+                <input type="text" name="newCat" placeholder="New category…" maxlength="30" required />
+                <button type="submit" class="btn btn--ghost btn--sm">+ Add</button>
+              </form>
+            </div>
+
+            <div id="productList"></div>
+          </div>
+
+          <!-- TAB: TEAM (Humans behind the bar) -->
+          <div class="admin-panel" data-panel="team" hidden>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px;flex-wrap:wrap">
+              <div>
+                <h2 style="margin-bottom:4px">The Humans Behind the Bar</h2>
+                <p class="help" style="margin:0">These team members appear on the About page of the live site.</p>
+              </div>
+              <button class="btn btn--primary btn--sm" id="addTeamBtn">+ Add Team Member</button>
+            </div>
+            <div id="teamList"></div>
+          </div>
+
+          <!-- TAB: SALES -->
+          <div class="admin-panel" data-panel="sales" hidden>
+            <h2>Daily Sales</h2>
+            <p class="help">Record total sales for each day. Optionally itemize by product.</p>
+
+            <div class="sales-entry">
+              <div class="field-row--3 field-row">
+                <div class="field">
+                  <label>Date</label>
+                  <input type="date" id="f_saleDate" />
+                </div>
+                <div class="field">
+                  <label>Daily total (₱)</label>
+                  <input type="number" id="f_saleTotal" min="0" step="any" placeholder="0" />
+                </div>
+                <div class="field" style="justify-content:flex-end">
+                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:.9rem;margin-top:24px">
+                    <input type="checkbox" id="f_saleItemize" />
+                    <span>Itemize by product</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="field" id="saleItemsWrap" hidden>
+                <div class="field__label">Sold today (quantity per product)</div>
+                <div id="saleItemsList" class="sale-items"></div>
+              </div>
+
+              <div class="field">
+                <label>Notes (optional)</label>
+                <input type="text" id="f_saleNote" placeholder="e.g. busy Saturday, rain affected foot traffic" />
+              </div>
+
+              <div style="display:flex;gap:8px">
+                <button class="btn btn--primary btn--sm" id="saveSaleBtn">Save Entry</button>
+                <button class="btn btn--ghost btn--sm" id="clearSaleBtn">Clear Form</button>
+              </div>
+            </div>
+
+            <h3 style="margin:32px 0 8px;font-family:var(--font-display);font-size:1.2rem">
+              History
+              <span id="salesSummary" style="font-size:.85rem;color:var(--ink-soft);font-weight:400;font-family:var(--font-body);margin-left:8px"></span>
+            </h3>
+            <div id="salesHistory"></div>
+          </div>
+
+          <!-- TAB: INVENTORY -->
+          <div class="admin-panel" data-panel="inventory" hidden>
+            <h2>Inventory</h2>
+            <p class="help">Track ingredients, expenses (restocks), and per-product costs.</p>
+
+            <!-- Stats -->
+            <div class="inv-stats" id="invStats"></div>
+
+            <!-- INGREDIENTS -->
+            <div class="inv-section">
+              <div class="inv-section__head">
+                <h3>Ingredients</h3>
+                <button class="btn btn--primary btn--sm" id="addIngredientBtn">+ Add Ingredient</button>
+              </div>
+              <div id="ingredientsList"></div>
+            </div>
+
+            <!-- RESTOCKS -->
+            <div class="inv-section">
+              <div class="inv-section__head">
+                <h3>Restocks <span style="color:var(--ink-soft);font-weight:400;font-size:.85rem;margin-left:6px">— expenses log</span></h3>
+                <button class="btn btn--primary btn--sm" id="addRestockBtn">+ Log Restock</button>
+              </div>
+              <div id="restocksList"></div>
+            </div>
+
+            <!-- RECIPES & COST ANALYSIS -->
+            <div class="inv-section">
+              <div class="inv-section__head">
+                <h3>Recipes & Cost Analysis</h3>
+              </div>
+              <p class="help">Define which ingredients go into each product. Cost-to-make is calculated automatically.</p>
+              <div id="recipesList"></div>
+            </div>
+          </div>
+
+          <!-- TAB: EMPLOYEES (admin only) -->
+          <div class="admin-panel" data-panel="employees" hidden>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px;flex-wrap:wrap">
+              <div>
+                <h2 style="margin-bottom:4px">Employee Accounts</h2>
+                <p class="help" style="margin:0">Anyone signed up as an employee has access to Products, Sales, and Inventory.</p>
+              </div>
+              <button class="btn btn--primary btn--sm" id="addEmpBtn">+ Add Employee</button>
+            </div>
+
+            <div class="inv-stats" id="empStats"></div>
+
+            <div id="employeesList"></div>
+          </div>
+
+          <!-- TAB: SHEETS (Google Sheets database) -->
+          <div class="admin-panel" data-panel="drive" hidden>
+            <h2>Google Sheets Database</h2>
+            <p class="help">Two-way sync between admin.html and your Google Sheet.</p>
+
+            <!-- Connection status -->
+            <div class="sheets-status" id="sheetsStatus"></div>
+
+            <!-- Config inputs -->
+            <div class="field-row">
+              <div class="field">
+                <label>Spreadsheet ID</label>
+                <input type="text" id="f_sheetId" placeholder="From the sheet URL: docs.google.com/spreadsheets/d/THIS_PART/edit" />
+                <div class="field__hint">The long ID in the sheet URL between <code>/d/</code> and <code>/edit</code>.</div>
+              </div>
+            </div>
+            <div class="field">
+              <label>Apps Script Web App URL</label>
+              <input type="url" id="f_appsScriptUrl" placeholder="https://script.google.com/macros/s/.../exec" />
+              <div class="field__hint">Get this after deploying the Apps Script (steps below).</div>
+            </div>
+
+            <!-- Actions -->
+            <div class="sheets-actions">
+              <button class="btn btn--primary btn--sm" id="testSheetsBtn">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                Test Connection
+              </button>
+              <button class="btn btn--ghost btn--sm" id="initSheetsBtn">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h18M12 3v18"/></svg>
+                Initialize Sheet Headers
+              </button>
+              <button class="btn btn--ghost btn--sm" id="pullSheetsBtn">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+                Pull from Sheet
+              </button>
+              <button class="btn btn--ghost btn--sm" id="pushSheetsBtn">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                Push to Sheet
+              </button>
+            </div>
+
+            <div class="field" style="margin-top:14px">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:.92rem">
+                <input type="checkbox" id="f_autoSync" />
+                <span>Auto-push to sheet on every save (recommended once connection is verified)</span>
+              </label>
+            </div>
+
+            <!-- Setup guide -->
+            <details class="sheets-setup">
+              <summary><strong>📖 First-time setup</strong> (do this once, ~5 minutes)</summary>
+              <ol>
+                <li>Open your Google Sheet, then click <strong>Extensions → Apps Script</strong></li>
+                <li>Delete any existing code in the editor. <strong>Paste the script below</strong>:</li>
+              </ol>
+              <div class="code-block-wrap">
+                <button class="btn btn--ghost btn--sm" id="copyScriptBtn">Copy Script</button>
+                <pre id="appsScriptCode"></pre>
+              </div>
+              <ol start="3">
+                <li>Click the disk icon (💾) to save. Name it anything (e.g. "Kugon API").</li>
+                <li>Click <strong>Deploy → New deployment</strong></li>
+                <li>Click the gear icon ⚙️ next to "Select type" → choose <strong>Web app</strong></li>
+                <li>Set <strong>Execute as: Me</strong> and <strong>Who has access: Anyone</strong></li>
+                <li>Click <strong>Deploy</strong>. Authorize when prompted (click "Advanced" → "Go to {script name}" → "Allow")</li>
+                <li><strong>Copy the Web app URL</strong> shown and paste it above</li>
+                <li>Click <strong>Test Connection</strong> — should say "Connected ✓"</li>
+                <li>Click <strong>Initialize Sheet Headers</strong> — fills your 6 tabs with proper column headers</li>
+                <li>Click <strong>Push to Sheet</strong> — uploads all your current data to the sheet</li>
+              </ol>
+              <p class="help" style="margin-top:12px">
+                <strong>Important:</strong> If you ever change the Apps Script code, you must <strong>Manage Deployments → Edit → New version → Deploy</strong> to apply changes. The URL stays the same.
+              </p>
+            </details>
+
+            <!-- Current data preview -->
+            <h2 style="margin-top:28px;font-size:1.2rem">Local Data (JSON)</h2>
+            <p class="help">This is the data currently in your browser — what gets pushed to the sheet.</p>
+            <div class="json-preview" id="jsonPreview"></div>
+          </div>
+
+          <!-- SAVE BAR -->
+          <div class="save-bar">
+            <span class="save-bar__status" id="saveStatus">No unsaved changes</span>
+            <button class="btn btn--primary btn--sm" id="saveBtn">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============== PRODUCT MODAL ============== -->
+  <div class="modal" id="productModal" aria-hidden="true">
+    <div class="modal__card">
+      <button class="icon-btn modal__close" data-close-modal aria-label="Close">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <h3 id="productModalTitle" style="font-family:var(--font-display);font-size:1.5rem;margin:0 0 16px">Add Product</h3>
+      <form id="productForm" style="display:flex;flex-direction:column;gap:14px">
+        <input type="hidden" name="id" />
+        <div class="field">
+          <label>Name</label>
+          <input type="text" name="name" required />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Category</label>
+            <select name="category" id="productCategorySelect" required></select>
+          </div>
+          <div class="field">
+            <label>Price (₱)</label>
+            <input type="number" name="price" min="0" step="1" required />
+          </div>
+        </div>
+        <div class="field">
+          <label>Short description (1 line, shown on card)</label>
+          <textarea name="desc" rows="2" required></textarea>
+        </div>
+        <div class="field">
+          <label>Full description (shown in detail modal)</label>
+          <textarea name="long" rows="4" required></textarea>
+        </div>
+        <div class="field">
+          <label>Flavor notes (comma-separated)</label>
+          <input type="text" name="notes" placeholder="e.g. Smooth, Cocoa, Roasted Nuts" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Serving</label>
+            <input type="text" name="serving" placeholder="e.g. 300 ml" />
+          </div>
+          <div class="field">
+            <label>Caffeine</label>
+            <input type="text" name="caffeine" placeholder="e.g. 126 mg" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Cup color (hex) — fallback when no image</label>
+          <input type="text" name="color" value="#caa169" pattern="^#[0-9a-fA-F]{6}$" />
+          <div class="field__hint">Used for the cup illustration background if no image is uploaded.</div>
+        </div>
+        <div class="field">
+          <label>Product Image (optional)</label>
+          <div id="imageDropzone" class="image-dropzone">
+            <div id="imagePreviewWrap" hidden>
+              <img id="imagePreview" alt="Preview" />
+              <button type="button" class="btn btn--ghost btn--sm" id="removeImageBtn">Remove image</button>
+            </div>
+            <div id="imageEmpty">
+              <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
+              <p style="margin:8px 0 4px;font-size:.9rem">Click to upload or drag image here</p>
+              <p class="field__hint" style="margin:0">JPG/PNG, auto-resized to 600px. Stored in localStorage as base64.</p>
+            </div>
+            <input type="file" id="imageFileInput" accept="image/*" hidden />
+          </div>
+        </div>
+        <button class="btn btn--primary btn--full" type="submit">Save Product</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============== INGREDIENT MODAL ============== -->
+  <div class="modal" id="ingredientModal" aria-hidden="true">
+    <div class="modal__card">
+      <button class="icon-btn modal__close" data-close-modal aria-label="Close">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <h3 id="ingredientModalTitle" style="font-family:var(--font-display);font-size:1.5rem;margin:0 0 16px">Add Ingredient</h3>
+      <form id="ingredientForm" style="display:flex;flex-direction:column;gap:14px">
+        <input type="hidden" name="id" />
+        <div class="field">
+          <label>Name</label>
+          <input type="text" name="name" required placeholder="e.g. Coffee Beans, Whole Milk" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Unit</label>
+            <select name="unit" required>
+              <option value="g">Grams (g)</option>
+              <option value="kg">Kilograms (kg)</option>
+              <option value="ml">Milliliters (ml)</option>
+              <option value="L">Liters (L)</option>
+              <option value="pcs">Pieces (pcs)</option>
+              <option value="oz">Ounces (oz)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Cost per unit (₱)</label>
+            <input type="number" name="unitCost" required min="0" step="any" placeholder="e.g. 1.5" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Current stock (in chosen unit)</label>
+          <input type="number" name="stock" min="0" step="any" value="0" />
+          <div class="field__hint">Tip: leave at 0 if unknown — restocks will add to this.</div>
+        </div>
+        <button class="btn btn--primary btn--full" type="submit">Save Ingredient</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============== RESTOCK MODAL ============== -->
+  <div class="modal" id="restockModal" aria-hidden="true">
+    <div class="modal__card modal__card--wide" style="max-width:640px;padding:36px">
+      <button class="icon-btn modal__close" data-close-modal aria-label="Close">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <h3 style="font-family:var(--font-display);font-size:1.5rem;margin:0 0 4px">Log a Restock</h3>
+      <p class="help">Add ingredients you purchased — stock levels update automatically.</p>
+      <form id="restockForm" style="display:flex;flex-direction:column;gap:14px">
+        <input type="hidden" name="id" />
+        <div class="field-row">
+          <div class="field">
+            <label>Date</label>
+            <input type="date" name="date" required />
+          </div>
+          <div class="field">
+            <label>Supplier / Note (optional)</label>
+            <input type="text" name="note" placeholder="e.g. Coffee Roaster Co" />
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field__label">Items purchased</div>
+          <div id="restockItems"></div>
+          <button type="button" class="btn btn--ghost btn--sm" id="addRestockItemBtn" style="align-self:flex-start;margin-top:6px">+ Add item</button>
+        </div>
+
+        <div class="restock-total">
+          <span>Total expense</span>
+          <strong id="restockTotal">₱0.00</strong>
+        </div>
+
+        <button class="btn btn--primary btn--full" type="submit">Save Restock</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============== RECIPE MODAL ============== -->
+  <div class="modal" id="recipeModal" aria-hidden="true">
+    <div class="modal__card modal__card--wide" style="max-width:640px;padding:36px">
+      <button class="icon-btn modal__close" data-close-modal aria-label="Close">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <h3 id="recipeModalTitle" style="font-family:var(--font-display);font-size:1.5rem;margin:0 0 4px">Recipe</h3>
+      <p class="help" id="recipeModalSub">Add ingredients used to make one serving.</p>
+      <form id="recipeForm" style="display:flex;flex-direction:column;gap:14px">
+        <input type="hidden" name="productId" />
+
+        <div class="field">
+          <div class="field__label">Ingredients per serving</div>
+          <div id="recipeItems"></div>
+          <button type="button" class="btn btn--ghost btn--sm" id="addRecipeItemBtn" style="align-self:flex-start;margin-top:6px">+ Add ingredient</button>
+        </div>
+
+        <div class="recipe-summary">
+          <div class="recipe-summary__row"><span>Sell price</span><strong id="recipeSellPrice">₱0</strong></div>
+          <div class="recipe-summary__row"><span>Cost to make</span><strong id="recipeCost">₱0.00</strong></div>
+          <div class="recipe-summary__row recipe-summary__row--profit"><span>Profit per serving</span><strong id="recipeProfit">₱0.00</strong></div>
+        </div>
+
+        <button class="btn btn--primary btn--full" type="submit">Save Recipe</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============== EMPLOYEE MODAL (admin add/edit) ============== -->
+  <div class="modal" id="employeeModal" aria-hidden="true">
+    <div class="modal__card">
+      <button class="icon-btn modal__close" data-close-modal aria-label="Close">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <h3 id="employeeModalTitle" style="font-family:var(--font-display);font-size:1.5rem;margin:0 0 4px">Add Employee</h3>
+      <p class="help" id="employeeModalSub">Create a new account. The employee can change their password by signing up again with the same username later.</p>
+      <form id="employeeForm" style="display:flex;flex-direction:column;gap:14px">
+        <input type="hidden" name="id" />
+        <div class="field">
+          <label>Full name</label>
+          <input type="text" name="name" required />
+        </div>
+        <div class="field">
+          <label>Username</label>
+          <input type="text" name="username" required pattern="[a-zA-Z0-9_]{3,}" />
+          <div class="field__hint">Letters, numbers, or underscore. Minimum 3 characters.</div>
+        </div>
+        <div class="field">
+          <label id="empPasswordLabel">Password</label>
+          <input type="text" name="password" required minlength="4" />
+          <div class="field__hint" id="empPasswordHint">Show in plain so you can share it with the employee.</div>
+        </div>
+        <button class="btn btn--primary btn--full" type="submit">Save Employee</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============== TEAM MODAL ============== -->
+  <div class="modal" id="teamModal" aria-hidden="true">
+    <div class="modal__card">
+      <button class="icon-btn modal__close" data-close-modal aria-label="Close">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <h3 id="teamModalTitle" style="font-family:var(--font-display);font-size:1.5rem;margin:0 0 16px">Add Team Member</h3>
+      <form id="teamForm" style="display:flex;flex-direction:column;gap:14px">
+        <input type="hidden" name="id" />
+        <div class="field">
+          <label>Name</label>
+          <input type="text" name="name" required placeholder="e.g. Maria Santos" />
+        </div>
+        <div class="field">
+          <label>Role / Title</label>
+          <input type="text" name="role" required placeholder="e.g. Head Barista · Q-grader" />
+          <div class="field__hint">Tip: use middle dot (·) to separate title and credential.</div>
+        </div>
+        <div class="field">
+          <label>Photo (optional)</label>
+          <div class="image-dropzone" id="teamDropzone">
+            <div id="teamPreviewWrap" hidden>
+              <img id="teamPreview" alt="Preview" />
+              <button type="button" class="btn btn--ghost btn--sm" id="teamRemoveImageBtn">Remove image</button>
+            </div>
+            <div id="teamImageEmpty">
+              <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
+              <p style="margin:8px 0 4px;font-size:.9rem">Click or drag to upload</p>
+              <p class="field__hint" style="margin:0">Square photos work best.</p>
+            </div>
+            <input type="file" id="teamFileInput" accept="image/*" hidden />
+          </div>
+        </div>
+        <button class="btn btn--primary btn--full" type="submit">Save Team Member</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOASTS -->
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <script>
+  /* =========================================================
+     ADMIN PANEL — Cafe Kugon
+  ========================================================= */
+
+  /* ---------- DEFAULTS (must match app.js DEFAULT_DATA) ---------- */
+  const DEFAULT_PRODUCTS = [
+    { id: 'p1', name: 'Espresso', category: 'Espresso', price: 110, color: '#3a1f0f',
+      desc: 'Bold, concentrated shot of pure character. Nutty crema, deep finish.',
+      long: 'A 30ml shot of pure espresso — the foundation of every coffee on our menu. Pulled from our house blend of Ethiopian and Sumatran beans, expect a thick crema, dark chocolate notes, and a clean, lingering finish.',
+      notes: ['Dark Chocolate', 'Nutty', 'Caramel'], serving: '30 ml · Single shot', caffeine: '63 mg' },
+    { id: 'p2', name: 'Americano', category: 'Espresso', price: 130, color: '#5a3418',
+      desc: 'Espresso lengthened with hot water. Clean, smooth, all-day friendly.',
+      long: 'A double shot of espresso poured over hot water — a longer, smoother drink without losing the rich espresso character.',
+      notes: ['Smooth', 'Cocoa', 'Roasted Nuts'], serving: '240 ml', caffeine: '126 mg' },
+    { id: 'p3', name: 'Cappuccino', category: 'Milk-Based', price: 160, color: '#a37846',
+      desc: 'Equal parts espresso, steamed milk, and airy foam. The classic.',
+      long: 'The Italian classic done right — equal thirds of espresso, steamed milk, and dense microfoam.',
+      notes: ['Velvety', 'Balanced', 'Cocoa Hint'], serving: '180 ml', caffeine: '126 mg' },
+    { id: 'p4', name: 'Latte', category: 'Milk-Based', price: 170, color: '#caa169',
+      desc: 'Silky steamed milk over a double shot. Comforting, mellow, lovely.',
+      long: 'A generous pour of silky steamed milk over a double espresso. Latte art comes free.',
+      notes: ['Creamy', 'Mild', 'Sweet'], serving: '300 ml', caffeine: '126 mg' },
+    { id: 'p5', name: 'Mocha', category: 'Flavored', price: 190, color: '#6b3410',
+      desc: 'Dark chocolate, espresso, and steamed milk. Dessert in a cup.',
+      long: 'House-made dark chocolate sauce stirred into espresso, topped with steamed milk and whipped cream.',
+      notes: ['Dark Chocolate', 'Sweet', 'Decadent'], serving: '300 ml', caffeine: '126 mg' },
+    { id: 'p6', name: 'Caramel Macchiato', category: 'Flavored', price: 200, color: '#b88656',
+      desc: 'Vanilla, steamed milk, espresso, and a drizzle of caramel on top.',
+      long: 'Vanilla syrup and steamed milk layered with espresso, crowned with caramel drizzle.',
+      notes: ['Caramel', 'Vanilla', 'Sweet'], serving: '300 ml', caffeine: '126 mg' },
+    { id: 'p7', name: 'Cold Brew', category: 'Cold', price: 180, color: '#2a1607',
+      desc: 'Steeped for 16 hours. Smooth, low-acid, refreshingly bold.',
+      long: 'Coarsely-ground beans steeped in cold filtered water for 16 hours. Smooth, naturally sweet, low-acid.',
+      notes: ['Smooth', 'Low-Acid', 'Chocolatey'], serving: '400 ml', caffeine: '200 mg' },
+    { id: 'p8', name: 'Vanilla Latte', category: 'Flavored', price: 185, color: '#d4a574',
+      desc: 'House-made vanilla syrup, espresso, and velvety steamed milk.',
+      long: 'Our standard latte with two pumps of house-made Madagascar vanilla syrup.',
+      notes: ['Vanilla', 'Creamy', 'Sweet'], serving: '300 ml', caffeine: '126 mg' },
+    { id: 'p9', name: 'Iced Americano', category: 'Cold', price: 150, color: '#3a2010',
+      desc: 'Espresso poured over ice and cold water. Crisp wake-up call.',
+      long: 'A double shot of espresso poured over a tall glass of ice and cold water.',
+      notes: ['Crisp', 'Bold', 'Refreshing'], serving: '400 ml', caffeine: '126 mg' },
+    { id: 'p10', name: 'Flat White', category: 'Milk-Based', price: 175, color: '#9a6f3d',
+      desc: 'Micro-foam steamed milk over a ristretto double. Velvet texture.',
+      long: 'A ristretto double shot under silky micro-foamed milk — less foam than a latte, more intensity than a cappuccino.',
+      notes: ['Velvet', 'Intense', 'Smooth'], serving: '180 ml', caffeine: '130 mg' },
+    { id: 'p11', name: 'Hazelnut Mocha', category: 'Flavored', price: 210, color: '#7a4a22',
+      desc: 'Hazelnut, dark chocolate, espresso, milk. Nutty and decadent.',
+      long: 'Toasted hazelnut syrup, house dark chocolate, and a double espresso, finished with steamed milk.',
+      notes: ['Hazelnut', 'Chocolate', 'Nutty'], serving: '300 ml', caffeine: '126 mg' },
+    { id: 'p12', name: 'Iced Latte', category: 'Cold', price: 175, color: '#e8c89a',
+      desc: 'Espresso, cold milk, ice. Smooth and refreshing — no fuss.',
+      long: 'A double shot of espresso over cold milk and ice. Simple, refreshing, quietly perfect on a hot afternoon.',
+      notes: ['Refreshing', 'Smooth', 'Mild'], serving: '400 ml', caffeine: '126 mg' },
+  ];
+
+  const DEFAULT_DATA = {
+    products: DEFAULT_PRODUCTS,
+    contact: {
+      address: 'Macabulos Dr,<br/>Tarlac City, Tarlac<br/>Philippines',
+      addressShort: 'Macabulos Dr, Tarlac City',
+      hours: 'Mon–Fri · 10:00am – 12:00am<br/>Sat–Sun · 8:00am – 10:00pm',
+      phone: '+63 2 123 4567',
+      phoneHref: 'tel:+6321234567',
+      email: 'hello@kugoncafe.com',
+      mapLat: 15.4758729,
+      mapLng: 120.585398,
+      mapZoom: 17,
+    },
+    orderLinks: {
+      foodpanda: 'https://www.foodpanda.ph/',
+      grab: 'https://food.grab.com/ph/en/',
+      facebook: 'https://www.facebook.com/',
+    },
+    sheets: {
+      sheetId: '1GqPUn-bSaObE-O1qel8ZefmYAYaDE3tTFE5iQo4ekpc',
+      appsScriptUrl: '',
+      autoSync: false,
+      lastPush: null,
+      lastPull: null,
+    },
+    syncUrl: '', // legacy, kept for back-compat
+    // ---- INVENTORY ----
+    ingredients: [],         // [{ id, name, unit, unitCost, stock }]
+    restocks: [],            // [{ id, date, items:[{ingredientId, amount, cost}], total, note }]
+    sales: [],               // [{ id, date, total, items:[{productId, qty}], note }]
+    recipes: {},             // { productId: [{ ingredientId, amount }] }
+    // ---- AUTH ----
+    employees: [],           // [{ id, username, name, password, createdAt, image }]
+    admins: [                // [{ id, username, name, password, createdAt, image }]
+      { id: 'a1', username: 'admin', name: 'Admin', password: 'admin1234', createdAt: '2026-01-01T00:00:00Z', image: '' },
+    ],
+    // ---- TEAM (humans behind the bar) ----
+    team: [
+      { id: 't1', name: 'Emmanuel Perez', role: 'Head Barista · Q-grader', image: 'images/Emmanuel.jpg' },
+      { id: 't2', name: 'Santi Seguin',   role: 'Roaster · Bean buyer',    image: 'images/Santi.jpg' },
+      { id: 't3', name: 'Aira Alcantara', role: 'Pastry chef',             image: 'images/Aira.jpg' },
+      { id: 't4', name: 'Raffi Mendoza',  role: 'Owner · Daydreamer',      image: 'images/Raffi.jpg' },
+    ],
+    // ---- CATEGORIES ----
+    categories: ['Espresso', 'Milk-Based', 'Cold', 'Flavored', 'Milk Tea', 'Fruit Tea', 'Halo-halo'],
+  };
+
+  /* ---------- STATE ---------- */
+  let state = loadData();
+  let dirty = false;
+
+  function loadData() {
+    try {
+      const stored = JSON.parse(localStorage.getItem('kugon_data') || '{}');
+      return {
+        products: stored.products || JSON.parse(JSON.stringify(DEFAULT_DATA.products)),
+        contact: { ...DEFAULT_DATA.contact, ...(stored.contact || {}) },
+        orderLinks: { ...DEFAULT_DATA.orderLinks, ...(stored.orderLinks || {}) },
+        sheets: { ...DEFAULT_DATA.sheets, ...(stored.sheets || {}) },
+        syncUrl: stored.syncUrl || '',
+        ingredients: stored.ingredients || [],
+        restocks: stored.restocks || [],
+        sales: stored.sales || [],
+        recipes: stored.recipes || {},
+        employees: stored.employees || [],
+        admins: (stored.admins && stored.admins.length) ? stored.admins : [...DEFAULT_DATA.admins],
+        team: (stored.team && stored.team.length) ? stored.team : JSON.parse(JSON.stringify(DEFAULT_DATA.team)),
+        categories: stored.categories || [...DEFAULT_DATA.categories],
+      };
+    } catch { return JSON.parse(JSON.stringify(DEFAULT_DATA)); }
+  }
+
+  function saveData(showToast) {
+    if (showToast === undefined) showToast = true;
+    localStorage.setItem('kugon_data', JSON.stringify(state));
+    dirty = false;
+    updateStatus('saved');
+    if (showToast) toast('Changes saved — refresh index.html to see them live', 'success');
+    refreshJsonPreview();
+    // Auto-push to sheets if enabled
+    if (state.sheets && state.sheets.autoSync && state.sheets.appsScriptUrl) {
+      pushToSheets(false).catch(err => console.warn('Auto-push failed:', err));
+    }
+  }
+
+  function markDirty() {
+    dirty = true;
+    updateStatus('dirty');
+  }
+
+  function updateStatus(kind) {
+    const el = document.getElementById('saveStatus');
+    el.classList.remove('is-dirty', 'is-saved');
+    if (kind === 'dirty') {
+      el.classList.add('is-dirty');
+      el.textContent = '● Unsaved changes';
+    } else if (kind === 'saved') {
+      el.classList.add('is-saved');
+      el.textContent = '✓ Saved';
+      setTimeout(() => updateStatus('clean'), 2200);
+    } else {
+      el.textContent = 'No unsaved changes';
+    }
+  }
+
+  /* ---------- THEME ---------- */
+  const savedTheme = localStorage.getItem('hb_theme') || 'light';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('hb_theme', next);
+  });
+
+  /* ---------- TOASTS ---------- */
+  function toast(msg, kind = '') {
+    const el = document.createElement('div');
+    el.className = `toast ${kind ? 'toast--' + kind : ''}`;
+    el.textContent = msg;
+    document.getElementById('toasts').appendChild(el);
+    setTimeout(() => el.remove(), 3100);
+  }
+
+  /* ---------- LOGIN / SESSION / ROLES ---------- */
+  const SESSION_KEY = 'kugon_admin_session';
+
+  function getSession() {
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (!raw) return null;
+      // Backwards-compat with old plain "1" sessions (treat as admin)
+      if (raw === '1') return { role: 'admin', username: 'admin', name: 'Admin' };
+      return JSON.parse(raw);
+    } catch { return null; }
+  }
+  function setSession(session) {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  }
+
+  function checkSession() {
+    const s = getSession();
+    if (s) showAdmin();
+  }
+
+  function applyRole(session) {
+    document.body.dataset.role = session.role;
+    const badge = $('userBadge');
+    if (badge) {
+      const roleClass = session.role === 'admin' ? 'is-admin' : '';
+      badge.innerHTML = `
+        ${escapeHtml(session.name)}
+        <span class="user-badge__role ${roleClass}">${session.role === 'admin' ? 'Admin' : 'Employee'}</span>`;
+    }
+    // If employee, force them to a tab they're allowed to see (default: Profile)
+    if (session.role === 'employee') {
+      const currentActive = document.querySelector('.admin-nav__item.is-active');
+      if (!currentActive || currentActive.hasAttribute('data-role-admin')) {
+        document.querySelectorAll('.admin-nav__item').forEach(b => b.classList.remove('is-active'));
+        const profileTab = document.querySelector('.admin-nav__item[data-tab="profile"]');
+        if (profileTab) profileTab.classList.add('is-active');
+        document.querySelectorAll('[data-panel]').forEach(p => {
+          p.hidden = p.dataset.panel !== 'profile';
+        });
+      }
+    }
+  }
+
+  function showAdmin() {
+    const session = getSession();
+    if (!session) return;
+    document.getElementById('loginScreen').hidden = true;
+    document.getElementById('adminScreen').hidden = false;
+    applyRole(session);
+    populateForms();
+    renderCategoryPills();
+    renderProductList();
+    renderTeam();
+    renderEmployees();
+    renderSales();
+    renderInventory();
+    renderProfile();
+    refreshJsonPreview();
+    injectAppsScriptCode();
+    refreshSheetsStatus();
+  }
+
+  /* Login form tabs (Log In / Sign Up) */
+  document.querySelectorAll('.login-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.login-tab').forEach(x => x.classList.remove('is-active'));
+      t.classList.add('is-active');
+      document.querySelectorAll('[data-loginpanel]').forEach(p => {
+        p.hidden = p.dataset.loginpanel !== t.dataset.logintab;
+      });
+    });
+  });
+
+  /* Login submit */
+  document.getElementById('loginForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const username = (fd.get('username') || '').toString().trim();
+    const password = (fd.get('password') || '').toString();
+
+    // Admin check — first against state.admins (data-driven)
+    const admin = (state.admins || []).find(
+      a => a.username.toLowerCase() === username.toLowerCase() && a.password === password
+    );
+    if (admin) {
+      setSession({ role: 'admin', username: admin.username, name: admin.name, id: admin.id });
+      showAdmin();
+      toast(`Welcome, ${admin.name}`, 'success');
+      e.target.reset();
+      return;
+    }
+    // Backstop: if admins list is empty (data wipe edge case), allow hardcoded admin
+    if ((state.admins || []).length === 0 && username === 'admin' && password === 'admin1234') {
+      setSession({ role: 'admin', username: 'admin', name: 'Admin', id: 'a1' });
+      showAdmin();
+      toast('Welcome, Admin', 'success');
+      e.target.reset();
+      return;
+    }
+    // Employee lookup
+    const emp = (state.employees || []).find(
+      x => x.username.toLowerCase() === username.toLowerCase() && x.password === password
+    );
+    if (emp) {
+      setSession({ role: 'employee', username: emp.username, name: emp.name, id: emp.id });
+      showAdmin();
+      toast(`Welcome, ${emp.name}`, 'success');
+      e.target.reset();
+      return;
+    }
+    toast('Invalid username or password', 'error');
+  });
+
+  /* Sign Up (employee) */
+  document.getElementById('signupForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const name = (fd.get('name') || '').toString().trim();
+    const username = (fd.get('username') || '').toString().trim().toLowerCase();
+    const password = (fd.get('password') || '').toString();
+    const confirm = (fd.get('confirmPassword') || '').toString();
+
+    if (password !== confirm) return toast('Passwords don\'t match', 'error');
+    if (username === 'admin') return toast('That username is reserved', 'error');
+    if ((state.employees || []).some(emp => emp.username.toLowerCase() === username)) {
+      return toast('Username already taken — try another', 'error');
+    }
+
+    state.employees = state.employees || [];
+    state.employees.push({
+      id: 'e' + Date.now().toString(36),
+      username, name, password,
+      createdAt: new Date().toISOString(),
+    });
+    saveData();
+    toast('Account created — log in below', 'success');
+    // Switch back to login tab and pre-fill username
+    document.querySelector('.login-tab[data-logintab="login"]').click();
+    document.querySelector('#loginForm [name="username"]').value = username;
+    document.querySelector('#loginForm [name="password"]').focus();
+    e.target.reset();
+  });
+
+  /* Logout */
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    localStorage.removeItem(SESSION_KEY);
+    location.reload();
+  });
+
+  /* ---------- TAB SWITCHING ---------- */
+  document.querySelectorAll('.admin-nav__item').forEach(b => {
+    b.addEventListener('click', () => {
+      // Block employees from admin tabs (extra defense; CSS already hides them)
+      const session = getSession();
+      if (session?.role === 'employee' && b.hasAttribute('data-role-admin')) return;
+      document.querySelectorAll('.admin-nav__item').forEach(x => x.classList.remove('is-active'));
+      b.classList.add('is-active');
+      const tab = b.dataset.tab;
+      document.querySelectorAll('[data-panel]').forEach(p => {
+        p.hidden = p.dataset.panel !== tab;
+      });
+      if (tab === 'drive') refreshJsonPreview();
+    });
+  });
+
+  /* ---------- FORM POPULATION ---------- */
+  function $(id) { return document.getElementById(id); }
+  function populateForms() {
+    const c = state.contact;
+    $('f_address').value = c.address || '';
+    $('f_addressShort').value = c.addressShort || '';
+    $('f_hours').value = c.hours || '';
+    $('f_phone').value = c.phone || '';
+    $('f_email').value = c.email || '';
+    $('f_mapLat').value = c.mapLat ?? '';
+    $('f_mapLng').value = c.mapLng ?? '';
+    $('f_mapZoom').value = c.mapZoom ?? 17;
+    $('f_foodpanda').value = state.orderLinks.foodpanda || '';
+    $('f_grab').value = state.orderLinks.grab || '';
+    $('f_facebook').value = state.orderLinks.facebook || '';
+    // Sheets config
+    $('f_sheetId').value = state.sheets.sheetId || '';
+    $('f_appsScriptUrl').value = state.sheets.appsScriptUrl || '';
+    $('f_autoSync').checked = !!state.sheets.autoSync;
+  }
+
+  // Listen for input changes to mark dirty
+  ['f_address','f_addressShort','f_hours','f_phone','f_email','f_mapLat','f_mapLng','f_mapZoom',
+   'f_foodpanda','f_grab','f_facebook'].forEach(id => {
+    document.addEventListener('input', e => {
+      if (e.target.id === id) markDirty();
+    });
+  });
+
+  // Sheets config — saves immediately (not via the Save bar)
+  ['f_sheetId', 'f_appsScriptUrl'].forEach(id => {
+    document.addEventListener('change', e => {
+      if (e.target.id === id) {
+        state.sheets[id === 'f_sheetId' ? 'sheetId' : 'appsScriptUrl'] = e.target.value.trim();
+        saveData();
+      }
+    });
+  });
+  $('f_autoSync').addEventListener('change', e => {
+    state.sheets.autoSync = e.target.checked;
+    saveData();
+    toast(e.target.checked ? 'Auto-push enabled' : 'Auto-push disabled');
+  });
+
+  // Maps short-link extractor (best effort)
+  $('f_mapShortLink').addEventListener('input', e => {
+    const v = e.target.value;
+    const m = v.match(/@(-?\d+\.\d+),(-?\d+\.\d+),(\d+(\.\d+)?)z/);
+    if (m) {
+      $('f_mapLat').value = m[1];
+      $('f_mapLng').value = m[2];
+      $('f_mapZoom').value = Math.round(parseFloat(m[3]));
+      markDirty();
+      toast('Coordinates extracted from URL', 'success');
+    }
+  });
+
+  /* ---------- SAVE ---------- */
+  $('saveBtn').addEventListener('click', () => {
+    // Pull form values into state
+    state.contact = {
+      ...state.contact,
+      address: $('f_address').value,
+      addressShort: $('f_addressShort').value,
+      hours: $('f_hours').value,
+      phone: $('f_phone').value,
+      phoneHref: 'tel:' + $('f_phone').value.replace(/\s/g, ''),
+      email: $('f_email').value,
+      mapLat: parseFloat($('f_mapLat').value) || DEFAULT_DATA.contact.mapLat,
+      mapLng: parseFloat($('f_mapLng').value) || DEFAULT_DATA.contact.mapLng,
+      mapZoom: parseInt($('f_mapZoom').value, 10) || 17,
+    };
+    state.orderLinks = {
+      foodpanda: $('f_foodpanda').value,
+      grab: $('f_grab').value,
+      facebook: $('f_facebook').value,
+    };
+    saveData();
+  });
+
+  /* ---------- RESET ---------- */
+  $('resetBtn').addEventListener('click', () => {
+    if (!confirm('Reset everything to defaults? Current edits will be lost (unless you exported a backup).')) return;
+    localStorage.removeItem('kugon_data');
+    state = loadData();
+    populateForms();
+    renderProductList();
+    refreshJsonPreview();
+    toast('Reset to defaults', 'success');
+  });
+
+  /* ---------- PRODUCTS ---------- */
+  function renderProductList() {
+    const wrap = $('productList');
+    if (state.products.length === 0) {
+      wrap.innerHTML = '<p class="help">No products yet. Click "+ Add Product" to start.</p>';
+      return;
+    }
+    wrap.innerHTML = `
+      <table class="prod-table">
+        <thead><tr><th></th><th>Name</th><th>Category</th><th>Price</th><th></th></tr></thead>
+        <tbody>
+          ${state.products.map(p => `
+            <tr>
+              <td>${p.image
+                ? `<img src="${p.image}" class="prod-thumb" alt="">`
+                : `<span class="prod-swatch" style="background:linear-gradient(135deg, ${p.color}, ${shade(p.color, -30)})"></span>`}</td>
+              <td><strong>${escapeHtml(p.name)}</strong></td>
+              <td>${escapeHtml(p.category)}</td>
+              <td>₱${p.price}</td>
+              <td class="prod-actions">
+                <button class="btn-icon-sm" data-edit="${p.id}" title="Edit">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                </button>
+                <button class="btn-icon-sm danger" data-delete="${p.id}" title="Delete">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                </button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  function shade(hex, percent) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = Math.max(0, Math.min(255, (n >> 16) + percent));
+    const g = Math.max(0, Math.min(255, ((n >> 8) & 0xff) + percent));
+    const b = Math.max(0, Math.min(255, (n & 0xff) + percent));
+    return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  document.body.addEventListener('click', e => {
+    const editId = e.target.closest('[data-edit]')?.dataset.edit;
+    if (editId) openProductModal(state.products.find(p => p.id === editId));
+    const delId = e.target.closest('[data-delete]')?.dataset.delete;
+    if (delId) {
+      if (confirm('Delete this product?')) {
+        state.products = state.products.filter(p => p.id !== delId);
+        renderProductList();
+        renderCategoryPills();
+        saveData();
+      }
+    }
+  });
+
+  $('addProductBtn').addEventListener('click', () => openProductModal(null));
+
+  /* =========================================================
+     IMAGE UPLOAD — shared helpers (used by Product, Profile, Team)
+  ========================================================= */
+  function resizeImageFile(file, maxDim, quality) {
+    return new Promise((resolve, reject) => {
+      if (!file || !file.type.startsWith('image/')) return reject(new Error('Not an image file'));
+      if (file.size > 8 * 1024 * 1024) return reject(new Error('Image too large (max 8 MB)'));
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > height && width > maxDim) {
+            height = Math.round(height * (maxDim / width)); width = maxDim;
+          } else if (height > maxDim) {
+            width = Math.round(width * (maxDim / height)); height = maxDim;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => reject(new Error('Could not read image'));
+        img.src = ev.target.result;
+      };
+      reader.onerror = () => reject(new Error('Could not read file'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Wires up a dropzone: { dropzoneId, fileInputId, previewWrapId, previewImgId, emptyId, removeBtnId, onLoaded }
+  // onLoaded(dataUrl|null) is called whenever the image changes (including removal).
+  function wireUpImageDropzone(cfg) {
+    const dropzone = document.getElementById(cfg.dropzoneId);
+    const fileInput = document.getElementById(cfg.fileInputId);
+    const previewWrap = document.getElementById(cfg.previewWrapId);
+    const previewImg = document.getElementById(cfg.previewImgId);
+    const empty = document.getElementById(cfg.emptyId);
+    const removeBtn = document.getElementById(cfg.removeBtnId);
+
+    function show(dataUrl) {
+      if (dataUrl) {
+        previewImg.src = dataUrl;
+        previewWrap.hidden = false;
+        empty.hidden = true;
+      } else {
+        previewImg.removeAttribute('src');
+        previewWrap.hidden = true;
+        empty.hidden = false;
+      }
+      cfg.onLoaded(dataUrl);
+    }
+    async function handleFile(file) {
+      try {
+        const dataUrl = await resizeImageFile(file, cfg.maxDim || 600, cfg.quality || 0.82);
+        show(dataUrl);
+        toast('Image ready', 'success');
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    }
+
+    dropzone.addEventListener('click', e => {
+      if (e.target.closest('button')) return;  // ignore clicks on buttons inside
+      fileInput.click();
+    });
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) handleFile(e.target.files[0]);
+      e.target.value = '';
+    });
+    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('is-dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('is-dragover'));
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropzone.classList.remove('is-dragover');
+      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+    removeBtn.addEventListener('click', () => show(null));
+
+    return { show };  // expose so caller can pre-fill
+  }
+
+  // ---- Product image upload state ----
+  let currentImageData = null;
+
+  const productImageZone = wireUpImageDropzone({
+    dropzoneId: 'imageDropzone',
+    fileInputId: 'imageFileInput',
+    previewWrapId: 'imagePreviewWrap',
+    previewImgId: 'imagePreview',
+    emptyId: 'imageEmpty',
+    removeBtnId: 'removeImageBtn',
+    maxDim: 600,
+    onLoaded: dataUrl => { currentImageData = dataUrl; },
+  });
+  function showImagePreview(dataUrl) {
+    currentImageData = dataUrl;
+    productImageZone.show(dataUrl);
+  }
+
+  function openProductModal(product) {
+    const form = $('productForm');
+    $('productModalTitle').textContent = product ? 'Edit Product' : 'Add Product';
+    // Populate category dropdown from state.categories
+    const select = $('productCategorySelect');
+    const cats = state.categories || [];
+    select.innerHTML = cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    // If product has a category that's not in the list (e.g. legacy), add it on the fly
+    if (product?.category && !cats.includes(product.category)) {
+      const opt = document.createElement('option');
+      opt.value = opt.textContent = product.category;
+      select.appendChild(opt);
+    }
+    form.elements.id.value = product?.id || '';
+    form.elements.name.value = product?.name || '';
+    form.elements.category.value = product?.category || cats[0] || '';
+    form.elements.price.value = product?.price || '';
+    form.elements.desc.value = product?.desc || '';
+    form.elements.long.value = product?.long || '';
+    form.elements.notes.value = (product?.notes || []).join(', ');
+    form.elements.serving.value = product?.serving || '';
+    form.elements.caffeine.value = product?.caffeine || '';
+    form.elements.color.value = product?.color || '#caa169';
+    showImagePreview(product?.image || null);
+    $('productModal').classList.add('is-open');
+  }
+
+  $('productForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const id = fd.get('id') || ('p' + Date.now().toString(36));
+    const data = {
+      id,
+      name: fd.get('name').trim(),
+      category: fd.get('category'),
+      price: parseInt(fd.get('price'), 10),
+      desc: fd.get('desc').trim(),
+      long: fd.get('long').trim(),
+      notes: fd.get('notes').split(',').map(s => s.trim()).filter(Boolean),
+      serving: fd.get('serving').trim(),
+      caffeine: fd.get('caffeine').trim(),
+      color: fd.get('color').trim() || '#caa169',
+    };
+    if (currentImageData) data.image = currentImageData;
+    const idx = state.products.findIndex(p => p.id === id);
+    if (idx >= 0) state.products[idx] = data;
+    else state.products.push(data);
+    renderProductList();
+    renderCategoryPills();
+    try {
+      saveData();
+      $('productModal').classList.remove('is-open');
+    } catch (err) {
+      toast('Storage full — try a smaller image or fewer products', 'error');
+    }
+  });
+
+  // Modal close handlers
+  document.querySelectorAll('[data-close-modal]').forEach(b => {
+    b.addEventListener('click', e => e.target.closest('.modal').classList.remove('is-open'));
+  });
+  document.querySelectorAll('.modal').forEach(m => {
+    m.addEventListener('click', e => { if (e.target === m) m.classList.remove('is-open'); });
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.querySelectorAll('.modal.is-open').forEach(m => m.classList.remove('is-open'));
+  });
+
+  /* ---------- EXPORT / IMPORT JSON ---------- */
+  $('exportBtn').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'kugon-data.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Downloaded kugon-data.json — upload to Google Drive next', 'success');
+  });
+
+  $('importBtn').addEventListener('click', () => $('importFile').click());
+  $('importFile').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        state = {
+          products: imported.products || DEFAULT_DATA.products,
+          contact: { ...DEFAULT_DATA.contact, ...(imported.contact || {}) },
+          orderLinks: { ...DEFAULT_DATA.orderLinks, ...(imported.orderLinks || {}) },
+          sheets: { ...DEFAULT_DATA.sheets, ...(imported.sheets || {}) },
+          syncUrl: imported.syncUrl || '',
+          ingredients: imported.ingredients || [],
+          restocks: imported.restocks || [],
+          sales: imported.sales || [],
+          recipes: imported.recipes || {},
+          employees: imported.employees || [],
+          admins: (imported.admins && imported.admins.length) ? imported.admins : [...DEFAULT_DATA.admins],
+          team: (imported.team && imported.team.length) ? imported.team : JSON.parse(JSON.stringify(DEFAULT_DATA.team)),
+          categories: imported.categories || [...DEFAULT_DATA.categories],
+        };
+        populateForms();
+        renderProductList();
+        saveData();
+        toast('JSON imported successfully', 'success');
+      } catch (err) {
+        toast('Invalid JSON file', 'error');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  /* =========================================================
+     GOOGLE SHEETS DATABASE
+  ========================================================= */
+  const APPS_SCRIPT_CODE = `// ============================================================
+// CAFE KUGON — Google Sheets API (Apps Script Web App)
+// ============================================================
+// 1. Open your sheet → Extensions → Apps Script
+// 2. Paste this whole file. Save (Ctrl/Cmd + S).
+// 3. Deploy → New deployment → Web app
+//    Execute as: Me · Access: Anyone
+// 4. Copy the Web App URL and paste into admin.html
+// ============================================================
+
+const SHEET_SCHEMAS = {
+  'Product':            ['id','name','category','price','desc','long','notes','serving','caffeine','color','image'],
+  'Contact & Location': ['key','value'],
+  'Links':              ['key','value'],
+  'Sales':              ['id','date','total','items','note'],
+  'Inventory':          ['type','id','name','unit','unitCost','stock','date','note','items','total','productId'],
+  'Employee':           ['id','username','name','password','createdAt','image'],
+  'Categories':         ['name'],
+  'Admin':              ['id','username','name','password','createdAt','image'],
+  'Team':               ['id','name','role','image'],
+};
+
+function doGet(e)  { return route(e, 'GET'); }
+function doPost(e) { return route(e, 'POST'); }
+
+function route(e, method) {
+  try {
+    let action = (e.parameter && e.parameter.action) || null;
+    let body = null;
+    if (method === 'POST' && e.postData && e.postData.contents) {
+      body = JSON.parse(e.postData.contents);
+      action = action || body.action;
+    }
+    let result;
+    if (action === 'ping')    result = { ok: true, message: 'connected', time: new Date().toISOString() };
+    else if (action === 'getAll')  result = getAll();
+    else if (action === 'push')    result = pushAll(body && body.data);
+    else if (action === 'init')    result = initSchema();
+    else                           result = { ok: false, error: 'Unknown action: ' + action };
+    return json(result);
+  } catch (err) {
+    return json({ ok: false, error: String(err && err.message || err) });
+  }
+}
+
+function json(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function ss() { return SpreadsheetApp.getActiveSpreadsheet(); }
+
+function ensureSheet(name) {
+  const s = ss().getSheetByName(name);
+  if (s) return s;
+  const created = ss().insertSheet(name);
+  const headers = SHEET_SCHEMAS[name];
+  if (headers) {
+    created.getRange(1, 1, 1, headers.length).setValues([headers])
+      .setFontWeight('bold').setBackground('#fef3c7');
+  }
+  return created;
+}
+
+function readSheet(name) {
+  const sheet = ensureSheet(name);
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return [];
+  const headers = data[0];
+  return data.slice(1)
+    .map(row => {
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = row[i]; });
+      return obj;
+    })
+    .filter(row => Object.values(row).some(v => v !== '' && v !== null));
+}
+
+function writeSheet(name, rows) {
+  const sheet = ensureSheet(name);
+  const headers = SHEET_SCHEMAS[name];
+  sheet.clear();
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers])
+    .setFontWeight('bold').setBackground('#fef3c7');
+  if (rows && rows.length > 0) {
+    const matrix = rows.map(r => headers.map(h => r[h] !== undefined ? r[h] : ''));
+    sheet.getRange(2, 1, matrix.length, headers.length).setValues(matrix);
+  }
+}
+
+function initSchema() {
+  Object.keys(SHEET_SCHEMAS).forEach(name => ensureSheet(name));
+  return { ok: true, message: 'Initialized ' + Object.keys(SHEET_SCHEMAS).length + ' tabs' };
+}
+
+function getAll() {
+  const products = readSheet('Product').map(r => ({
+    id: String(r.id), name: r.name, category: r.category, price: Number(r.price) || 0,
+    desc: r.desc, long: r.long,
+    notes: r.notes ? String(r.notes).split(',').map(s => s.trim()).filter(Boolean) : [],
+    serving: r.serving, caffeine: r.caffeine, color: r.color, image: r.image || ''
+  }));
+
+  const contact = {};
+  readSheet('Contact & Location').forEach(r => { if (r.key) contact[r.key] = r.value; });
+  ['mapLat','mapLng','mapZoom'].forEach(k => { if (contact[k] !== undefined) contact[k] = Number(contact[k]); });
+
+  const orderLinks = {};
+  readSheet('Links').forEach(r => { if (r.key) orderLinks[r.key] = r.value; });
+
+  const sales = readSheet('Sales').map(r => ({
+    id: String(r.id), date: String(r.date), total: Number(r.total) || 0,
+    items: r.items ? safeParse(r.items, []) : [], note: r.note
+  }));
+
+  const ingredients = [], restocks = [], recipes = {};
+  readSheet('Inventory').forEach(r => {
+    if (r.type === 'ingredient') {
+      ingredients.push({
+        id: String(r.id), name: r.name, unit: r.unit,
+        unitCost: Number(r.unitCost) || 0, stock: Number(r.stock) || 0
+      });
+    } else if (r.type === 'restock') {
+      restocks.push({
+        id: String(r.id), date: String(r.date), note: r.note,
+        items: safeParse(r.items, []), total: Number(r.total) || 0
+      });
+    } else if (r.type === 'recipe') {
+      if (r.productId) recipes[r.productId] = safeParse(r.items, []);
+    }
+  });
+
+  const employees = readSheet('Employee').map(r => ({
+    id: String(r.id), username: r.username, name: r.name,
+    password: r.password, createdAt: String(r.createdAt || ''),
+    image: r.image || ''
+  }));
+
+  const admins = readSheet('Admin').map(r => ({
+    id: String(r.id), username: r.username, name: r.name,
+    password: r.password, createdAt: String(r.createdAt || ''),
+    image: r.image || ''
+  }));
+
+  const team = readSheet('Team').map(r => ({
+    id: String(r.id), name: r.name, role: r.role, image: r.image || ''
+  }));
+
+  const categories = readSheet('Categories').map(r => r.name).filter(Boolean);
+
+  return {
+    ok: true,
+    data: { products, contact, orderLinks, sales, ingredients, restocks, recipes, employees, admins, team, categories }
+  };
+}
+
+function pushAll(data) {
+  if (!data) return { ok: false, error: 'No data sent' };
+
+  if (data.products) {
+    writeSheet('Product', data.products.map(p => ({
+      ...p, notes: Array.isArray(p.notes) ? p.notes.join(', ') : (p.notes || '')
+    })));
+  }
+  if (data.contact) {
+    writeSheet('Contact & Location',
+      Object.entries(data.contact).map(([k, v]) => ({ key: k, value: String(v == null ? '' : v) }))
+    );
+  }
+  if (data.orderLinks) {
+    writeSheet('Links',
+      Object.entries(data.orderLinks).map(([k, v]) => ({ key: k, value: String(v == null ? '' : v) }))
+    );
+  }
+  if (data.sales) {
+    writeSheet('Sales', data.sales.map(s => ({
+      id: s.id, date: s.date, total: s.total,
+      items: JSON.stringify(s.items || []), note: s.note || ''
+    })));
+  }
+  // Inventory: merge ingredients + restocks + recipes into one tab using 'type'
+  const invRows = [];
+  (data.ingredients || []).forEach(i => invRows.push({
+    type: 'ingredient', id: i.id, name: i.name, unit: i.unit,
+    unitCost: i.unitCost, stock: i.stock
+  }));
+  (data.restocks || []).forEach(r => invRows.push({
+    type: 'restock', id: r.id, date: r.date, note: r.note || '',
+    items: JSON.stringify(r.items || []), total: r.total
+  }));
+  Object.entries(data.recipes || {}).forEach(([pid, items]) => invRows.push({
+    type: 'recipe', items: JSON.stringify(items || []), productId: pid
+  }));
+  writeSheet('Inventory', invRows);
+
+  if (data.employees) {
+    writeSheet('Employee', data.employees.map(e => ({
+      id: e.id, username: e.username, name: e.name,
+      password: e.password, createdAt: e.createdAt, image: e.image || ''
+    })));
+  }
+  if (data.admins) {
+    writeSheet('Admin', data.admins.map(a => ({
+      id: a.id, username: a.username, name: a.name,
+      password: a.password, createdAt: a.createdAt, image: a.image || ''
+    })));
+  }
+  if (data.team) {
+    writeSheet('Team', data.team.map(t => ({
+      id: t.id, name: t.name, role: t.role, image: t.image || ''
+    })));
+  }
+  if (data.categories) {
+    writeSheet('Categories', data.categories.map(c => ({ name: c })));
+  }
+  return { ok: true, message: 'Synced ' + new Date().toISOString() };
+}
+
+function safeParse(s, fallback) {
+  try { return JSON.parse(s); } catch { return fallback; }
+}
+`;
+
+  // Show the script in the setup section
+  function injectAppsScriptCode() {
+    const el = $('appsScriptCode');
+    if (el) el.textContent = APPS_SCRIPT_CODE;
+  }
+
+  // Copy script button
+  $('copyScriptBtn').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(APPS_SCRIPT_CODE);
+      toast('Script copied — paste into Apps Script editor', 'success');
+    } catch {
+      // Fallback: select the text
+      const range = document.createRange();
+      range.selectNode($('appsScriptCode'));
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+      toast('Script selected — press Ctrl/Cmd+C to copy');
+    }
+  });
+
+  function setSheetsStatus(kind, msg, time) {
+    const el = $('sheetsStatus');
+    el.classList.remove('is-ok', 'is-err', 'is-loading');
+    if (kind === 'ok') el.classList.add('is-ok');
+    else if (kind === 'err') el.classList.add('is-err');
+    else if (kind === 'loading') el.classList.add('is-loading');
+    el.innerHTML = `
+      <span class="sheets-status__dot"></span>
+      <span class="sheets-status__msg">${escapeHtml(msg)}</span>
+      ${time ? `<span class="sheets-status__time">${time}</span>` : ''}`;
+  }
+
+  function refreshSheetsStatus() {
+    const sUrl = state.sheets.appsScriptUrl;
+    if (!sUrl) {
+      setSheetsStatus('idle', 'Not connected — paste your Apps Script Web App URL above');
+    } else {
+      const last = state.sheets.lastPush || state.sheets.lastPull;
+      setSheetsStatus('ok', 'Connection configured', last ? 'Last sync: ' + new Date(last).toLocaleString() : '');
+    }
+  }
+
+  // POSTing to Apps Script: must use text/plain to avoid CORS preflight
+  async function callSheets(action, payload) {
+    const url = state.sheets.appsScriptUrl;
+    if (!url) throw new Error('Apps Script URL not set');
+    let res;
+    if (action === 'getAll' || action === 'ping') {
+      res = await fetch(`${url}?action=${action}`, { method: 'GET' });
+    } else {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action, data: payload }),
+        redirect: 'follow',
+      });
+    }
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    if (json.ok === false) throw new Error(json.error || 'Unknown error');
+    return json;
+  }
+
+  $('testSheetsBtn').addEventListener('click', async () => {
+    setSheetsStatus('loading', 'Testing connection…');
+    try {
+      const r = await callSheets('ping');
+      setSheetsStatus('ok', 'Connected ✓', 'Server time: ' + r.time);
+      toast('Connected to Apps Script', 'success');
+    } catch (err) {
+      setSheetsStatus('err', 'Failed: ' + err.message);
+      toast('Connection failed: ' + err.message, 'error');
+    }
+  });
+
+  $('initSheetsBtn').addEventListener('click', async () => {
+    if (!confirm('This will create/verify the 7 tabs (Product, Contact & Location, Links, Sales, Inventory, Employee, Categories) in your sheet. Continue?')) return;
+    setSheetsStatus('loading', 'Initializing sheet schema…');
+    try {
+      const r = await callSheets('init');
+      setSheetsStatus('ok', r.message || 'Schema initialized');
+      toast('Sheet headers set up — now click "Push to Sheet"', 'success');
+    } catch (err) {
+      setSheetsStatus('err', 'Init failed: ' + err.message);
+      toast('Init failed: ' + err.message, 'error');
+    }
+  });
+
+  $('pushSheetsBtn').addEventListener('click', async () => {
+    await pushToSheets(true);
+  });
+
+  async function pushToSheets(showToast) {
+    if (!state.sheets.appsScriptUrl) return;
+    if (showToast) setSheetsStatus('loading', 'Pushing all data to sheet…');
+    try {
+      const r = await callSheets('push', state);
+      state.sheets.lastPush = new Date().toISOString();
+      saveData(false); // save without toast
+      setSheetsStatus('ok', 'Pushed to sheet ✓', new Date().toLocaleString());
+      if (showToast) toast('All data pushed to Google Sheet', 'success');
+    } catch (err) {
+      setSheetsStatus('err', 'Push failed: ' + err.message);
+      if (showToast) toast('Push failed: ' + err.message, 'error');
+    }
+  }
+
+  $('pullSheetsBtn').addEventListener('click', async () => {
+    if (!confirm('This will replace your current data with what is on the sheet. Continue?')) return;
+    setSheetsStatus('loading', 'Pulling data from sheet…');
+    try {
+      const r = await callSheets('getAll');
+      const remote = r.data || {};
+      state = {
+        ...state,
+        products: remote.products && remote.products.length ? remote.products : state.products,
+        contact: { ...state.contact, ...(remote.contact || {}) },
+        orderLinks: { ...state.orderLinks, ...(remote.orderLinks || {}) },
+        sales: remote.sales || [],
+        ingredients: remote.ingredients || [],
+        restocks: remote.restocks || [],
+        recipes: remote.recipes || {},
+        employees: remote.employees || [],
+        admins: (remote.admins && remote.admins.length) ? remote.admins : state.admins,
+        team: (remote.team && remote.team.length) ? remote.team : state.team,
+        categories: remote.categories && remote.categories.length ? remote.categories : state.categories,
+      };
+      state.sheets.lastPull = new Date().toISOString();
+      saveData(false);
+      // Refresh everything in UI
+      populateForms();
+      renderCategoryPills();
+      renderProductList();
+      renderEmployees();
+      renderSales();
+      renderInventory();
+      refreshJsonPreview();
+      setSheetsStatus('ok', 'Pulled from sheet ✓', new Date().toLocaleString());
+      toast('Data pulled from sheet', 'success');
+    } catch (err) {
+      setSheetsStatus('err', 'Pull failed: ' + err.message);
+      toast('Pull failed: ' + err.message, 'error');
+    }
+  });
+
+  function refreshJsonPreview() {
+    const el = $('jsonPreview');
+    if (el) el.textContent = JSON.stringify(state, null, 2);
+  }
+
+  /* =========================================================
+     CATEGORIES (CRUD)
+  ========================================================= */
+  function renderCategoryPills() {
+    const wrap = $('catPills');
+    if (!wrap) return;
+    const cats = state.categories || [];
+    if (cats.length === 0) {
+      wrap.innerHTML = '<span class="muted" style="font-size:.85rem">No categories yet — add one →</span>';
+      return;
+    }
+    wrap.innerHTML = cats.map(c => {
+      const count = state.products.filter(p => p.category === c).length;
+      return `
+        <span class="cat-pill">
+          ${escapeHtml(c)}
+          ${count > 0 ? `<span class="cat-pill__count">· ${count}</span>` : ''}
+          <button type="button" class="cat-pill__remove" data-delcat="${escapeHtml(c)}" title="Remove">×</button>
+        </span>`;
+    }).join('');
+  }
+
+  $('addCategoryForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const name = (fd.get('newCat') || '').toString().trim();
+    if (!name) return;
+    state.categories = state.categories || [];
+    if (state.categories.some(c => c.toLowerCase() === name.toLowerCase())) {
+      return toast('That category already exists', 'error');
+    }
+    state.categories.push(name);
+    saveData();
+    renderCategoryPills();
+    e.target.reset();
+    toast(`Added "${name}"`, 'success');
+  });
+
+  document.body.addEventListener('click', e => {
+    const cat = e.target.closest('[data-delcat]')?.dataset.delcat;
+    if (!cat) return;
+    const count = state.products.filter(p => p.category === cat).length;
+    let msg = `Remove category "${cat}"?`;
+    if (count > 0) msg += `\n\n${count} product${count > 1 ? 's are' : ' is'} using it. They'll keep their label but the category won't appear in dropdowns or menu chips.`;
+    if (!confirm(msg)) return;
+    state.categories = state.categories.filter(c => c !== cat);
+    saveData();
+    renderCategoryPills();
+    toast(`Removed "${cat}"`);
+  });
+
+  /* =========================================================
+     EMPLOYEES (admin-managed)
+  ========================================================= */
+  function renderEmployees() {
+    const stats = $('empStats');
+    const list = $('employeesList');
+    const emps = state.employees || [];
+    if (stats) {
+      stats.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-card__label">Total accounts</div>
+          <div class="stat-card__value">${emps.length}</div>
+          <div class="stat-card__delta">${emps.length === 0 ? 'No one signed up yet' : 'Registered'}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">Signed up this month</div>
+          <div class="stat-card__value">${countThisMonth(emps)}</div>
+          <div class="stat-card__delta">in ${new Date().toLocaleString(undefined, { month: 'long' })}</div>
+        </div>`;
+    }
+    if (!list) return;
+    if (emps.length === 0) {
+      list.innerHTML = '<div class="empty-state">No employee accounts yet. Click "+ Add Employee" or wait for someone to sign up on the login page.</div>';
+      return;
+    }
+    const sorted = [...emps].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+    list.innerHTML = `
+      <table class="emp-table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Username</th>
+            <th>Password</th>
+            <th>Joined</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${sorted.map(emp => `
+            <tr>
+              <td>
+                <div class="emp-name">
+                  <div class="emp-avatar">${escapeHtml(initials(emp.name))}</div>
+                  <strong>${escapeHtml(emp.name)}</strong>
+                </div>
+              </td>
+              <td><code style="font-size:.85em">${escapeHtml(emp.username)}</code></td>
+              <td class="password-cell">
+                <span data-empid="${emp.id}" data-pw="hidden">••••••••</span>
+                <button type="button" data-togglepw="${emp.id}" title="Show/Hide">👁</button>
+              </td>
+              <td>${emp.createdAt ? formatDate(emp.createdAt.slice(0, 10)) : '—'}</td>
+              <td class="prod-actions">
+                <button class="btn-icon-sm" data-editemp="${emp.id}" title="Edit">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                </button>
+                <button class="btn-icon-sm danger" data-delemp="${emp.id}" title="Delete">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                </button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  function countThisMonth(emps) {
+    const now = new Date();
+    const ym = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    return emps.filter(e => (e.createdAt || '').startsWith(ym)).length;
+  }
+  function initials(name) {
+    return name.split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase() || '?';
+  }
+
+  $('addEmpBtn').addEventListener('click', () => openEmployeeModal(null));
+
+  function openEmployeeModal(emp) {
+    const form = $('employeeForm');
+    form.reset();
+    $('employeeModalTitle').textContent = emp ? 'Edit Employee' : 'Add Employee';
+    form.elements.id.value = emp?.id || '';
+    form.elements.name.value = emp?.name || '';
+    form.elements.username.value = emp?.username || '';
+    form.elements.password.value = emp?.password || '';
+    // Editing: username should not be changeable to keep things simple
+    form.elements.username.readOnly = !!emp;
+    $('employeeModal').classList.add('is-open');
+  }
+
+  $('employeeForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const id = fd.get('id');
+    const name = (fd.get('name') || '').toString().trim();
+    const username = (fd.get('username') || '').toString().trim().toLowerCase();
+    const password = (fd.get('password') || '').toString();
+
+    if (username === 'admin') return toast('That username is reserved', 'error');
+
+    if (id) {
+      // Edit existing
+      const emp = state.employees.find(e => e.id === id);
+      if (!emp) return toast('Employee not found', 'error');
+      emp.name = name;
+      emp.password = password;
+      toast(`Updated ${name}`, 'success');
+    } else {
+      // New
+      if (state.employees.some(e => e.username.toLowerCase() === username)) {
+        return toast('Username already taken', 'error');
+      }
+      state.employees.push({
+        id: 'e' + Date.now().toString(36),
+        username, name, password,
+        createdAt: new Date().toISOString(),
+      });
+      toast(`Created account for ${name}`, 'success');
+    }
+    saveData();
+    renderEmployees();
+    $('employeeModal').classList.remove('is-open');
+  });
+
+  // Employee row actions
+  document.body.addEventListener('click', e => {
+    const editId = e.target.closest('[data-editemp]')?.dataset.editemp;
+    if (editId) return openEmployeeModal(state.employees.find(emp => emp.id === editId));
+
+    const delId = e.target.closest('[data-delemp]')?.dataset.delemp;
+    if (delId) {
+      const emp = state.employees.find(e => e.id === delId);
+      if (emp && confirm(`Delete account for ${emp.name} (${emp.username})? They won't be able to log in anymore.`)) {
+        state.employees = state.employees.filter(e => e.id !== delId);
+        saveData();
+        renderEmployees();
+        toast('Employee deleted');
+      }
+    }
+
+    const pwId = e.target.closest('[data-togglepw]')?.dataset.togglepw;
+    if (pwId) {
+      const span = document.querySelector(`[data-empid="${pwId}"]`);
+      if (!span) return;
+      const emp = state.employees.find(e => e.id === pwId);
+      if (!emp) return;
+      if (span.dataset.pw === 'hidden') {
+        span.textContent = emp.password;
+        span.dataset.pw = 'shown';
+      } else {
+        span.textContent = '••••••••';
+        span.dataset.pw = 'hidden';
+      }
+    }
+  });
+
+  /* =========================================================
+     MY PROFILE — for both roles
+  ========================================================= */
+  let currentProfileImage = null;
+  let profileImageZone = null;
+
+  function ensureProfileZone() {
+    if (profileImageZone) return;
+    profileImageZone = wireUpImageDropzone({
+      dropzoneId: 'profileDropzone',
+      fileInputId: 'profileFileInput',
+      previewWrapId: 'profilePreviewWrap',
+      previewImgId: 'profilePreview',
+      emptyId: 'profileImageEmpty',
+      removeBtnId: 'profileRemoveImageBtn',
+      maxDim: 400,
+      onLoaded: dataUrl => { currentProfileImage = dataUrl; },
+    });
+  }
+
+  function renderProfile() {
+    const session = getSession();
+    if (!session) return;
+    ensureProfileZone();
+    const collection = session.role === 'admin' ? (state.admins || []) : (state.employees || []);
+    const user = collection.find(u => u.id === session.id) ||
+                 collection.find(u => u.username && u.username.toLowerCase() === session.username.toLowerCase());
+    const form = $('profileForm');
+    if (!form) return;
+
+    // Avatar in profile card — use image if available, else initials
+    const avatarEl = $('profileAvatar');
+    if (user?.image) {
+      avatarEl.innerHTML = `<img src="${user.image}" alt="${escapeHtml(user.name)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+    } else {
+      avatarEl.textContent = initials(session.name);
+    }
+
+    $('profileNameDisplay').textContent = user?.name || session.name;
+    $('profileUserDisplay').textContent = '@' + session.username;
+    $('profileRoleDisplay').textContent = (session.role === 'admin' ? 'Administrator' : 'Employee')
+      + (user?.createdAt ? ' · joined ' + formatDate((user.createdAt || '').slice(0, 10)) : '');
+
+    form.elements.name.value = user?.name || session.name;
+    form.elements.username.value = session.username;
+    form.elements.newPassword.value = '';
+    form.elements.confirmPassword.value = '';
+
+    // Preload current image into dropzone (or path-based image like images/foo.jpg)
+    currentProfileImage = user?.image || null;
+    profileImageZone.show(currentProfileImage);
+  }
+
+  document.getElementById('profileForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const session = getSession();
+    if (!session) return;
+    const fd = new FormData(e.target);
+    const newName = (fd.get('name') || '').toString().trim();
+    const newPw = (fd.get('newPassword') || '').toString();
+    const confirmPw = (fd.get('confirmPassword') || '').toString();
+
+    if (!newName) return toast('Name cannot be empty', 'error');
+    if (newPw) {
+      if (newPw.length < 4) return toast('Password must be at least 4 characters', 'error');
+      if (newPw !== confirmPw) return toast('Passwords don\u2019t match', 'error');
+    }
+
+    const collection = session.role === 'admin' ? state.admins : state.employees;
+    const user = collection.find(u => u.id === session.id) ||
+                 collection.find(u => u.username && u.username.toLowerCase() === session.username.toLowerCase());
+    if (!user) return toast('Account not found', 'error');
+
+    user.name = newName;
+    if (newPw) user.password = newPw;
+    // Image: currentProfileImage is the latest (null if removed)
+    user.image = currentProfileImage || '';
+
+    try {
+      saveData();
+    } catch (err) {
+      return toast('Storage full — try a smaller image', 'error');
+    }
+    setSession({ ...session, name: newName });
+    applyRole(getSession());
+    renderProfile();
+    toast('Profile updated', 'success');
+  });
+
+  /* =========================================================
+     TEAM (Humans behind the bar) — admin-only
+  ========================================================= */
+  let currentTeamImage = null;
+  let teamImageZone = null;
+
+  function ensureTeamZone() {
+    if (teamImageZone) return;
+    teamImageZone = wireUpImageDropzone({
+      dropzoneId: 'teamDropzone',
+      fileInputId: 'teamFileInput',
+      previewWrapId: 'teamPreviewWrap',
+      previewImgId: 'teamPreview',
+      emptyId: 'teamImageEmpty',
+      removeBtnId: 'teamRemoveImageBtn',
+      maxDim: 400,
+      onLoaded: dataUrl => { currentTeamImage = dataUrl; },
+    });
+  }
+
+  function renderTeam() {
+    const wrap = $('teamList');
+    if (!wrap) return;
+    if ((state.team || []).length === 0) {
+      wrap.innerHTML = '<div class="empty-state">No team members yet. Click "+ Add Team Member" to start.</div>';
+      return;
+    }
+    wrap.innerHTML = `<div class="team-grid-admin">${
+      state.team.map(t => {
+        const photo = t.image
+          ? `<img src="${t.image}" class="team-card-admin__photo" alt="${escapeHtml(t.name)}" onerror="this.outerHTML='<div class=&quot;team-card-admin__photo team-card-admin__photo--placeholder&quot;>${escapeHtml(initials(t.name)).replace(/'/g, '&#39;')}</div>'" />`
+          : `<div class="team-card-admin__photo team-card-admin__photo--placeholder">${escapeHtml(initials(t.name))}</div>`;
+        return `
+          <div class="team-card-admin">
+            ${photo}
+            <h4 class="team-card-admin__name">${escapeHtml(t.name)}</h4>
+            <p class="team-card-admin__role">${escapeHtml(t.role)}</p>
+            <div class="team-card-admin__actions">
+              <button class="btn-icon-sm" data-editteam="${t.id}" title="Edit">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+              </button>
+              <button class="btn-icon-sm danger" data-delteam="${t.id}" title="Delete">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+              </button>
+            </div>
+          </div>`;
+      }).join('')
+    }</div>`;
+  }
+
+  $('addTeamBtn').addEventListener('click', () => openTeamModal(null));
+
+  function openTeamModal(member) {
+    ensureTeamZone();
+    const form = $('teamForm');
+    $('teamModalTitle').textContent = member ? 'Edit Team Member' : 'Add Team Member';
+    form.elements.id.value = member?.id || '';
+    form.elements.name.value = member?.name || '';
+    form.elements.role.value = member?.role || '';
+    currentTeamImage = member?.image || null;
+    teamImageZone.show(currentTeamImage);
+    $('teamModal').classList.add('is-open');
+  }
+
+  $('teamForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const id = fd.get('id') || ('t' + Date.now().toString(36));
+    const data = {
+      id,
+      name: (fd.get('name') || '').toString().trim(),
+      role: (fd.get('role') || '').toString().trim(),
+      image: currentTeamImage || '',
+    };
+    const idx = state.team.findIndex(t => t.id === id);
+    if (idx >= 0) state.team[idx] = data;
+    else state.team.push(data);
+    try {
+      saveData();
+      renderTeam();
+      $('teamModal').classList.remove('is-open');
+      toast('Team member saved', 'success');
+    } catch (err) {
+      toast('Storage full — try a smaller image', 'error');
+    }
+  });
+
+  document.body.addEventListener('click', e => {
+    const editId = e.target.closest('[data-editteam]')?.dataset.editteam;
+    if (editId) return openTeamModal(state.team.find(t => t.id === editId));
+    const delId = e.target.closest('[data-delteam]')?.dataset.delteam;
+    if (delId) {
+      const t = state.team.find(t => t.id === delId);
+      if (t && confirm(`Remove ${t.name} from the team?`)) {
+        state.team = state.team.filter(t => t.id !== delId);
+        saveData();
+        renderTeam();
+        toast('Removed from team');
+      }
+    }
+  });
+
+  /* =========================================================
+     SALES
+  ========================================================= */
+  function todayStr() {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  function renderSales() {
+    // Default date to today on first load
+    if (!$('f_saleDate').value) $('f_saleDate').value = todayStr();
+    renderSaleItemsForm();
+    renderSalesHistory();
+  }
+
+  function renderSaleItemsForm() {
+    const wrap = $('saleItemsList');
+    wrap.innerHTML = state.products.map(p => `
+      <div class="sale-item-row">
+        <span>${escapeHtml(p.name)}</span>
+        <input type="number" min="0" step="1" data-saleqty="${p.id}" placeholder="0" />
+      </div>`).join('');
+  }
+
+  $('f_saleItemize').addEventListener('change', e => {
+    $('saleItemsWrap').hidden = !e.target.checked;
+    if (e.target.checked) renderSaleItemsForm();
+  });
+
+  // Auto-sum total when itemized values are typed
+  document.addEventListener('input', e => {
+    if (e.target.dataset.saleqty && $('f_saleItemize').checked) {
+      let sum = 0;
+      document.querySelectorAll('[data-saleqty]').forEach(input => {
+        const qty = parseInt(input.value, 10) || 0;
+        const product = state.products.find(p => p.id === input.dataset.saleqty);
+        if (product) sum += qty * product.price;
+      });
+      $('f_saleTotal').value = sum || '';
+    }
+  });
+
+  $('saveSaleBtn').addEventListener('click', () => {
+    const date = $('f_saleDate').value;
+    const total = parseFloat($('f_saleTotal').value) || 0;
+    if (!date) return toast('Please pick a date', 'error');
+    if (total <= 0) return toast('Total must be greater than zero', 'error');
+
+    const items = [];
+    if ($('f_saleItemize').checked) {
+      document.querySelectorAll('[data-saleqty]').forEach(input => {
+        const qty = parseInt(input.value, 10) || 0;
+        if (qty > 0) items.push({ productId: input.dataset.saleqty, qty });
+      });
+    }
+    const sale = {
+      id: 's' + Date.now().toString(36),
+      date, total, items,
+      note: $('f_saleNote').value.trim(),
+    };
+    state.sales.unshift(sale);
+    saveData();
+    clearSaleForm();
+    renderSalesHistory();
+    toast('Sale entry saved', 'success');
+  });
+
+  function clearSaleForm() {
+    $('f_saleDate').value = todayStr();
+    $('f_saleTotal').value = '';
+    $('f_saleNote').value = '';
+    $('f_saleItemize').checked = false;
+    $('saleItemsWrap').hidden = true;
+    document.querySelectorAll('[data-saleqty]').forEach(i => i.value = '');
+  }
+  $('clearSaleBtn').addEventListener('click', clearSaleForm);
+
+  function renderSalesHistory() {
+    const wrap = $('salesHistory');
+    const sales = [...state.sales].sort((a, b) => b.date.localeCompare(a.date));
+    if (sales.length === 0) {
+      wrap.innerHTML = '<div class="empty-state">No sales recorded yet. Save your first day above.</div>';
+      $('salesSummary').textContent = '';
+      return;
+    }
+    const totalAll = sales.reduce((s, x) => s + x.total, 0);
+    $('salesSummary').textContent = `· ${sales.length} entries · ₱${totalAll.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} total`;
+
+    wrap.innerHTML = sales.map(s => {
+      const itemsList = s.items.length
+        ? `<details>
+            <summary>${s.items.length} items · ${escapeHtml(s.note || '')}</summary>
+            <ul>${s.items.map(i => {
+              const p = state.products.find(x => x.id === i.productId);
+              return `<li>${p ? escapeHtml(p.name) : '?'} × ${i.qty}</li>`;
+            }).join('')}</ul>
+          </details>`
+        : `<span>${escapeHtml(s.note || '—')}</span>`;
+      return `
+        <div class="sales-history-row">
+          <div class="sales-history-row__date">${formatDate(s.date)}</div>
+          <div class="sales-history-row__total">₱${s.total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+          <div class="sales-history-row__items">${itemsList}</div>
+          <div>
+            <button class="btn-icon-sm danger" data-deletesale="${s.id}" title="Delete">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            </button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function formatDate(s) {
+    try {
+      const d = new Date(s + 'T00:00:00');
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch { return s; }
+  }
+
+  document.body.addEventListener('click', e => {
+    const sid = e.target.closest('[data-deletesale]')?.dataset.deletesale;
+    if (sid && confirm('Delete this sales entry?')) {
+      state.sales = state.sales.filter(s => s.id !== sid);
+      saveData();
+      renderSalesHistory();
+      toast('Sale deleted');
+    }
+  });
+
+  /* =========================================================
+     INVENTORY
+  ========================================================= */
+  const LOW_STOCK_THRESHOLD = 0.2;  // 20% of last known max
+
+  function renderInventory() {
+    renderInvStats();
+    renderIngredients();
+    renderRestocks();
+    renderRecipes();
+  }
+
+  function renderInvStats() {
+    const totalValue = state.ingredients.reduce((s, i) => s + (i.stock || 0) * (i.unitCost || 0), 0);
+    const totalSpend = state.restocks.reduce((s, r) => s + (r.total || 0), 0);
+    const lowCount = state.ingredients.filter(i => (i.stock || 0) > 0 && (i.stock || 0) < 50).length;
+    const emptyCount = state.ingredients.filter(i => (i.stock || 0) <= 0).length;
+    // 7-day sales total
+    const since = new Date();
+    since.setDate(since.getDate() - 7);
+    const sinceStr = since.toISOString().slice(0, 10);
+    const recentSales = state.sales
+      .filter(s => s.date >= sinceStr)
+      .reduce((sum, s) => sum + s.total, 0);
+    $('invStats').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-card__label">Stock value</div>
+        <div class="stat-card__value">₱${totalValue.toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
+        <div class="stat-card__delta">${state.ingredients.length} ingredients</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__label">Total spent</div>
+        <div class="stat-card__value">₱${totalSpend.toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
+        <div class="stat-card__delta">${state.restocks.length} restocks</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__label">Sales (7 days)</div>
+        <div class="stat-card__value">₱${recentSales.toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
+        <div class="stat-card__delta">${state.sales.filter(s => s.date >= sinceStr).length} entries</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__label">Stock alerts</div>
+        <div class="stat-card__value">${lowCount + emptyCount}</div>
+        <div class="stat-card__delta ${(lowCount + emptyCount) > 0 ? 'warn' : ''}">${emptyCount} out, ${lowCount} low</div>
+      </div>`;
+  }
+
+  function renderIngredients() {
+    const wrap = $('ingredientsList');
+    if (state.ingredients.length === 0) {
+      wrap.innerHTML = '<div class="empty-state">No ingredients yet. Click "+ Add Ingredient" to start (e.g. Coffee Beans, Milk).</div>';
+      return;
+    }
+    wrap.innerHTML = `
+      <table class="ing-table">
+        <thead>
+          <tr>
+            <th>Ingredient</th>
+            <th>Unit</th>
+            <th class="num">Cost/unit</th>
+            <th class="num">Stock</th>
+            <th class="num">Stock value</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${state.ingredients.map(i => {
+            const stock = i.stock || 0;
+            const pillClass = stock <= 0 ? 'empty' : stock < 50 ? 'low' : 'ok';
+            const pillText = stock <= 0 ? 'Out' : stock < 50 ? 'Low' : 'OK';
+            const value = stock * (i.unitCost || 0);
+            return `
+              <tr ${stock <= 0 ? '' : (stock < 50 ? 'class="low-stock"' : '')}>
+                <td><strong>${escapeHtml(i.name)}</strong></td>
+                <td>${escapeHtml(i.unit)}</td>
+                <td class="num">₱${(i.unitCost || 0).toFixed(2)}</td>
+                <td class="num">${stock.toLocaleString()} <span class="stock-pill ${pillClass}">${pillText}</span></td>
+                <td class="num">₱${value.toFixed(2)}</td>
+                <td class="prod-actions">
+                  <button class="btn-icon-sm" data-editing="${i.id}" title="Edit">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                  </button>
+                  <button class="btn-icon-sm danger" data-deleting="${i.id}" title="Delete">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                  </button>
+                </td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  $('addIngredientBtn').addEventListener('click', () => openIngredientModal(null));
+
+  function openIngredientModal(ing) {
+    const form = $('ingredientForm');
+    $('ingredientModalTitle').textContent = ing ? 'Edit Ingredient' : 'Add Ingredient';
+    form.elements.id.value = ing?.id || '';
+    form.elements.name.value = ing?.name || '';
+    form.elements.unit.value = ing?.unit || 'g';
+    form.elements.unitCost.value = ing?.unitCost ?? '';
+    form.elements.stock.value = ing?.stock ?? 0;
+    $('ingredientModal').classList.add('is-open');
+  }
+
+  $('ingredientForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const id = fd.get('id') || ('i' + Date.now().toString(36));
+    const data = {
+      id,
+      name: fd.get('name').trim(),
+      unit: fd.get('unit'),
+      unitCost: parseFloat(fd.get('unitCost')) || 0,
+      stock: parseFloat(fd.get('stock')) || 0,
+    };
+    const idx = state.ingredients.findIndex(i => i.id === id);
+    if (idx >= 0) state.ingredients[idx] = data;
+    else state.ingredients.push(data);
+    saveData();
+    renderInventory();
+    $('ingredientModal').classList.remove('is-open');
+    toast('Ingredient saved', 'success');
+  });
+
+  document.body.addEventListener('click', e => {
+    const editId = e.target.closest('[data-editing]')?.dataset.editing;
+    if (editId) openIngredientModal(state.ingredients.find(i => i.id === editId));
+    const delId = e.target.closest('[data-deleting]')?.dataset.deleting;
+    if (delId) {
+      if (state.ingredients.find(i => i.id === delId)) {
+        if (confirm('Delete this ingredient? (Recipes referencing it will keep the ID but show "?".)')) {
+          state.ingredients = state.ingredients.filter(i => i.id !== delId);
+          saveData();
+          renderInventory();
+          toast('Ingredient deleted');
+        }
+      }
+    }
+  });
+
+  /* ---- RESTOCKS ---- */
+  function renderRestocks() {
+    const wrap = $('restocksList');
+    const restocks = [...state.restocks].sort((a, b) => b.date.localeCompare(a.date));
+    if (restocks.length === 0) {
+      wrap.innerHTML = '<div class="empty-state">No restocks logged. Add one to start tracking expenses.</div>';
+      return;
+    }
+    wrap.innerHTML = restocks.map(r => {
+      const itemsTxt = r.items.map(it => {
+        const ing = state.ingredients.find(x => x.id === it.ingredientId);
+        return `${ing ? escapeHtml(ing.name) : '?'} +${it.amount}${ing ? ing.unit : ''}`;
+      }).join(' · ');
+      return `
+        <div class="restock-card">
+          <div class="restock-card__date">${formatDate(r.date)}</div>
+          <div class="restock-card__items">${itemsTxt}${r.note ? ` <span style="color:var(--ink-soft)">· ${escapeHtml(r.note)}</span>` : ''}</div>
+          <div class="restock-card__total">₱${(r.total || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+          <button class="btn-icon-sm danger" data-deleterestock="${r.id}" title="Delete">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          </button>
+        </div>`;
+    }).join('');
+  }
+
+  function buildRestockItemRow(item) {
+    const opts = state.ingredients.map(i =>
+      `<option value="${i.id}" ${item?.ingredientId === i.id ? 'selected' : ''}>${escapeHtml(i.name)} (${i.unit})</option>`
+    ).join('');
+    const row = document.createElement('div');
+    row.className = 'restock-item-row';
+    row.innerHTML = `
+      <select class="restock-ing" required>
+        <option value="">— select ingredient —</option>
+        ${opts}
+      </select>
+      <input type="number" class="restock-amt" placeholder="Amount" min="0" step="any" value="${item?.amount ?? ''}" required />
+      <input type="number" class="restock-cost" placeholder="Cost (₱)" min="0" step="any" value="${item?.cost ?? ''}" required />
+      <button type="button" class="remove-row" title="Remove">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>`;
+    row.querySelector('.remove-row').addEventListener('click', () => {
+      row.remove();
+      recalcRestockTotal();
+    });
+    row.querySelectorAll('input').forEach(inp => inp.addEventListener('input', recalcRestockTotal));
+    return row;
+  }
+
+  function recalcRestockTotal() {
+    let total = 0;
+    document.querySelectorAll('#restockItems .restock-item-row').forEach(row => {
+      total += parseFloat(row.querySelector('.restock-cost').value) || 0;
+    });
+    $('restockTotal').textContent = '₱' + total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  }
+
+  $('addRestockBtn').addEventListener('click', () => {
+    if (state.ingredients.length === 0) {
+      return toast('Add at least one ingredient first', 'error');
+    }
+    $('restockForm').reset();
+    $('restockForm').elements.date.value = todayStr();
+    $('restockItems').innerHTML = '';
+    $('restockItems').appendChild(buildRestockItemRow());
+    recalcRestockTotal();
+    $('restockModal').classList.add('is-open');
+  });
+
+  $('addRestockItemBtn').addEventListener('click', () => {
+    $('restockItems').appendChild(buildRestockItemRow());
+    recalcRestockTotal();
+  });
+
+  $('restockForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const items = [];
+    let total = 0;
+    document.querySelectorAll('#restockItems .restock-item-row').forEach(row => {
+      const ingredientId = row.querySelector('.restock-ing').value;
+      const amount = parseFloat(row.querySelector('.restock-amt').value) || 0;
+      const cost = parseFloat(row.querySelector('.restock-cost').value) || 0;
+      if (ingredientId && amount > 0) {
+        items.push({ ingredientId, amount, cost });
+        total += cost;
+        // Increment ingredient stock
+        const ing = state.ingredients.find(i => i.id === ingredientId);
+        if (ing) ing.stock = (ing.stock || 0) + amount;
+      }
+    });
+    if (items.length === 0) return toast('Add at least one valid item', 'error');
+
+    state.restocks.unshift({
+      id: 'r' + Date.now().toString(36),
+      date: fd.get('date'),
+      note: (fd.get('note') || '').toString().trim(),
+      items, total,
+    });
+    saveData();
+    renderInventory();
+    $('restockModal').classList.remove('is-open');
+    toast(`Restock saved — ₱${total.toFixed(2)}`, 'success');
+  });
+
+  document.body.addEventListener('click', e => {
+    const id = e.target.closest('[data-deleterestock]')?.dataset.deleterestock;
+    if (id && confirm('Delete this restock? Stock levels will NOT be reversed automatically.')) {
+      state.restocks = state.restocks.filter(r => r.id !== id);
+      saveData();
+      renderInventory();
+      toast('Restock deleted');
+    }
+  });
+
+  /* ---- RECIPES ---- */
+  function renderRecipes() {
+    const wrap = $('recipesList');
+    if (state.products.length === 0) {
+      wrap.innerHTML = '<div class="empty-state">No products yet. Add products first in the Products tab.</div>';
+      return;
+    }
+    wrap.innerHTML = state.products.map(p => {
+      const recipe = state.recipes[p.id] || [];
+      const cost = recipeCost(recipe);
+      const profit = (p.price || 0) - cost;
+      const marginPct = p.price > 0 ? (profit / p.price) * 100 : 0;
+      let marginClass = 'none', marginTxt = '—';
+      if (recipe.length > 0 && cost > 0) {
+        marginClass = profit > 0 ? 'good' : 'bad';
+        marginTxt = `${marginPct.toFixed(0)}% margin`;
+      }
+      const ingCount = recipe.length;
+      return `
+        <div class="recipe-row">
+          <div>
+            <div class="recipe-row__name">${escapeHtml(p.name)}</div>
+            <div class="recipe-row__meta">${ingCount ? `${ingCount} ingredient${ingCount > 1 ? 's' : ''}` : 'No recipe yet'} · Sells ₱${p.price}</div>
+          </div>
+          <div class="recipe-row__cost">
+            ₱${cost.toFixed(2)}
+            <small>cost to make</small>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="recipe-row__margin ${marginClass}">${marginTxt}</span>
+            <button class="btn btn--ghost btn--sm" data-recipe="${p.id}">${ingCount ? 'Edit' : 'Build'}</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function recipeCost(recipe) {
+    return recipe.reduce((sum, item) => {
+      const ing = state.ingredients.find(i => i.id === item.ingredientId);
+      return sum + (ing ? (ing.unitCost || 0) * (item.amount || 0) : 0);
+    }, 0);
+  }
+
+  function buildRecipeItemRow(item) {
+    const opts = state.ingredients.map(i =>
+      `<option value="${i.id}" ${item?.ingredientId === i.id ? 'selected' : ''}>${escapeHtml(i.name)} (${i.unit})</option>`
+    ).join('');
+    const row = document.createElement('div');
+    row.className = 'recipe-item-row';
+    row.innerHTML = `
+      <select class="recipe-ing" required>
+        <option value="">— select ingredient —</option>
+        ${opts}
+      </select>
+      <input type="number" class="recipe-amt" placeholder="Amount per serving" min="0" step="any" value="${item?.amount ?? ''}" required />
+      <button type="button" class="remove-row" title="Remove">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>`;
+    row.querySelector('.remove-row').addEventListener('click', () => {
+      row.remove();
+      recalcRecipeCost();
+    });
+    row.querySelectorAll('select, input').forEach(el => el.addEventListener('input', recalcRecipeCost));
+    row.querySelector('.recipe-ing').addEventListener('change', recalcRecipeCost);
+    return row;
+  }
+
+  function recalcRecipeCost() {
+    const productId = $('recipeForm').elements.productId.value;
+    const product = state.products.find(p => p.id === productId);
+    let cost = 0;
+    document.querySelectorAll('#recipeItems .recipe-item-row').forEach(row => {
+      const ingId = row.querySelector('.recipe-ing').value;
+      const amt = parseFloat(row.querySelector('.recipe-amt').value) || 0;
+      const ing = state.ingredients.find(i => i.id === ingId);
+      if (ing && amt > 0) cost += (ing.unitCost || 0) * amt;
+    });
+    const sellPrice = product?.price || 0;
+    const profit = sellPrice - cost;
+    $('recipeSellPrice').textContent = '₱' + sellPrice;
+    $('recipeCost').textContent = '₱' + cost.toFixed(2);
+    $('recipeProfit').textContent = (profit >= 0 ? '+' : '') + '₱' + profit.toFixed(2);
+    $('recipeProfit').style.color = profit >= 0 ? 'var(--accent)' : 'var(--danger)';
+  }
+
+  document.body.addEventListener('click', e => {
+    const productId = e.target.closest('[data-recipe]')?.dataset.recipe;
+    if (!productId) return;
+    if (state.ingredients.length === 0) {
+      return toast('Add ingredients first', 'error');
+    }
+    const product = state.products.find(p => p.id === productId);
+    const recipe = state.recipes[productId] || [];
+    $('recipeModalTitle').textContent = product.name + ' — Recipe';
+    $('recipeModalSub').textContent = `Sells for ₱${product.price}. Add the ingredients used in ONE serving.`;
+    $('recipeForm').elements.productId.value = productId;
+    const itemsWrap = $('recipeItems');
+    itemsWrap.innerHTML = '';
+    if (recipe.length === 0) {
+      itemsWrap.appendChild(buildRecipeItemRow());
+    } else {
+      recipe.forEach(it => itemsWrap.appendChild(buildRecipeItemRow(it)));
+    }
+    recalcRecipeCost();
+    $('recipeModal').classList.add('is-open');
+  });
+
+  $('addRecipeItemBtn').addEventListener('click', () => {
+    $('recipeItems').appendChild(buildRecipeItemRow());
+    recalcRecipeCost();
+  });
+
+  $('recipeForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const productId = e.target.elements.productId.value;
+    const items = [];
+    document.querySelectorAll('#recipeItems .recipe-item-row').forEach(row => {
+      const ingredientId = row.querySelector('.recipe-ing').value;
+      const amount = parseFloat(row.querySelector('.recipe-amt').value) || 0;
+      if (ingredientId && amount > 0) items.push({ ingredientId, amount });
+    });
+    if (items.length === 0) {
+      delete state.recipes[productId];
+    } else {
+      state.recipes[productId] = items;
+    }
+    saveData();
+    renderInventory();
+    $('recipeModal').classList.remove('is-open');
+    toast('Recipe saved', 'success');
+  });
+
+  /* ---------- INIT ---------- */
+  checkSession();
+  </script>
+</body>
+</html>

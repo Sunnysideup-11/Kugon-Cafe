@@ -1,5 +1,5 @@
 /* =========================================================
-   KUGON CAFÉ — simplified front-end
+   HALO BEANS CAFÉ — simplified front-end
    No auth, no cart. Browse + product details + order popup.
    Data can be overridden by admin.html via localStorage 'kugon_data'.
 ========================================================= */
@@ -10,7 +10,7 @@
    data from your Google Sheet when they load the page.
    (Without this, only YOUR browser sees admin edits.)
 ========================================================= */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw9Ovj5v9zDU0FQpH0Asm1pbLpDYsL2VCJRNpROwHLroBQnRjePJV02pZyM7zTrAvNJ/exec';
+const APPS_SCRIPT_URL = 'PASTE_YOUR_URL_HERE';
 // Example: 'https://script.google.com/macros/s/AKfycby.../exec'
 
 /* ---------- DEFAULT DATA ---------- */
@@ -107,6 +107,11 @@ const DEFAULT_DATA = {
     grab: 'https://food.grab.com/ph/en/',
     facebook: 'https://www.facebook.com/',
   },
+  todaysPour: {
+    name: 'Ethiopia Yirgacheffe',
+    notes: 'Floral · Citrus · Honey',
+    price: '₱180',
+  },
   team: [
     { id: 't1', name: 'Emmanuel Perez', role: 'Head Barista · Q-grader', image: 'images/Emmanuel.jpg' },
     { id: 't2', name: 'Santi Seguin',   role: 'Roaster · Bean buyer',    image: 'images/Santi.jpg' },
@@ -124,6 +129,7 @@ function loadData() {
       products: stored.products || DEFAULT_DATA.products,
       contact: { ...DEFAULT_DATA.contact, ...(stored.contact || {}) },
       orderLinks: { ...DEFAULT_DATA.orderLinks, ...(stored.orderLinks || {}) },
+      todaysPour: { ...DEFAULT_DATA.todaysPour, ...(stored.todaysPour || {}) },
       team: (stored.team && stored.team.length) ? stored.team : DEFAULT_DATA.team,
       sheets: { ...DEFAULT_DATA.sheets, ...(stored.sheets || {}) },
     };
@@ -172,6 +178,15 @@ function applyDataToDom() {
   document.querySelectorAll('a.platform-btn--foodpanda').forEach(a => a.href = DATA.orderLinks.foodpanda);
   document.querySelectorAll('a.platform-btn--grab').forEach(a => a.href = DATA.orderLinks.grab);
   document.querySelectorAll('a.platform-btn--facebook').forEach(a => a.href = DATA.orderLinks.facebook);
+  // Today's Pour (hero card)
+  if (DATA.todaysPour) {
+    const pName = document.getElementById('pourName');
+    const pNotes = document.getElementById('pourNotes');
+    const pPrice = document.getElementById('pourPrice');
+    if (pName) pName.textContent = DATA.todaysPour.name || '';
+    if (pNotes) pNotes.textContent = DATA.todaysPour.notes || '';
+    if (pPrice) pPrice.textContent = DATA.todaysPour.price || '';
+  }
   // Team — "The humans behind the bar"
   const teamGrid = document.getElementById('teamGrid');
   if (teamGrid && DATA.team && DATA.team.length > 0) {

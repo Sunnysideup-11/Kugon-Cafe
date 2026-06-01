@@ -1097,8 +1097,8 @@
             </div>
             <div class="field">
               <label>Apps Script Web App URL</label>
-              <input type="url" id="f_appsScriptUrl" placeholder="https://script.google.com/macros/s/.../exec" />
-              <div class="field__hint">Get this after deploying the Apps Script (steps below).</div>
+              <input type="url" id="f_appsScriptUrl" readonly style="background:var(--bg);opacity:.85;font-family:'SF Mono',monospace;font-size:.78rem;cursor:not-allowed" />
+              <div class="field__hint">🔒 Hardcoded in <code>admin.html</code>. To change it, edit the <code>APPS_SCRIPT_URL</code> constant near the top of the script.</div>
             </div>
 
             <!-- Actions -->
@@ -1479,6 +1479,13 @@
       notes: ['Refreshing', 'Smooth', 'Mild'], serving: '400 ml', caffeine: '126 mg' },
   ];
 
+  /* =========================================================
+     HARDCODED APPS SCRIPT URL
+     This is the Web App URL for the deployed Apps Script that
+     reads/writes the Google Sheet "KG DB".
+  ========================================================= */
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw9Ovj5v9zDU0FQpH0Asm1pbLpDYsL2VCJRNpROwHLroBQnRjePJV02pZyM7zTrAvNJ/exec';
+
   const DEFAULT_DATA = {
     products: DEFAULT_PRODUCTS,
     contact: {
@@ -1565,7 +1572,7 @@
     if (showToast) toast('Changes saved — refresh index.html to see them live', 'success');
     refreshJsonPreview();
     // Auto-push to sheets if enabled
-    if (state.sheets && state.sheets.autoSync && state.sheets.appsScriptUrl) {
+    if (state.sheets && state.sheets.autoSync) {
       pushToSheets(false).catch(err => console.warn('Auto-push failed:', err));
     }
   }
@@ -1755,7 +1762,7 @@
     $('f_pourPrice').value = tp.price || '';
     // Sheets config
     $('f_sheetId').value = state.sheets.sheetId || '';
-    $('f_appsScriptUrl').value = state.sheets.appsScriptUrl || '';
+    $('f_appsScriptUrl').value = APPS_SCRIPT_URL;
     $('f_autoSync').checked = !!state.sheets.autoSync;
   }
 
@@ -1768,13 +1775,11 @@
   });
 
   // Sheets config — saves immediately (not via the Save bar)
-  ['f_sheetId', 'f_appsScriptUrl'].forEach(id => {
-    document.addEventListener('change', e => {
-      if (e.target.id === id) {
-        state.sheets[id === 'f_sheetId' ? 'sheetId' : 'appsScriptUrl'] = e.target.value.trim();
-        saveData();
-      }
-    });
+  document.addEventListener('change', e => {
+    if (e.target.id === 'f_sheetId') {
+      state.sheets.sheetId = e.target.value.trim();
+      saveData(false);
+    }
   });
   $('f_autoSync').addEventListener('change', e => {
     state.sheets.autoSync = e.target.checked;
@@ -2410,18 +2415,14 @@ function safeParse(s, fallback) {
   }
 
   function refreshSheetsStatus() {
-    const sUrl = state.sheets.appsScriptUrl;
-    if (!sUrl) {
-      setSheetsStatus('idle', 'Not connected — paste your Apps Script Web App URL above');
-    } else {
-      const last = state.sheets.lastPush || state.sheets.lastPull;
-      setSheetsStatus('ok', 'Connection configured', last ? 'Last sync: ' + new Date(last).toLocaleString() : '');
-    }
+    const last = state.sheets.lastPush || state.sheets.lastPull;
+    setSheetsStatus('ok', 'Connected (URL hardcoded in admin.html)',
+      last ? 'Last sync: ' + new Date(last).toLocaleString() : 'Click Test Connection to verify');
   }
 
   // POSTing to Apps Script: must use text/plain to avoid CORS preflight
   async function callSheets(action, payload) {
-    const url = state.sheets.appsScriptUrl;
+    const url = APPS_SCRIPT_URL;
     if (!url) throw new Error('Apps Script URL not set');
     let res;
     if (action === 'getAll' || action === 'ping') {
@@ -2470,7 +2471,6 @@ function safeParse(s, fallback) {
   });
 
   async function pushToSheets(showToast) {
-    if (!state.sheets.appsScriptUrl) return;
     if (showToast) setSheetsStatus('loading', 'Pushing all data to sheet…');
     try {
       const r = await callSheets('push', state);

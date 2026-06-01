@@ -1270,8 +1270,26 @@ em { font-style: italic; }
 }
 
 @media (max-width: 860px) {
-  .hero__grid { grid-template-columns: 1fr; gap: 40px; }
-  .hero__visual { height: 380px; order: -1; }
+  .hero__grid { grid-template-columns: 1fr; gap: 32px; }
+  .hero__visual {
+    height: auto;        /* let it grow naturally instead of fixed 380px */
+    min-height: 300px;
+    order: -1;
+  }
+  .cup-card {
+    max-width: 280px;    /* smaller card on mobile so it doesn't overflow */
+    padding: 18px;
+  }
+  .cup-card__art { padding: 10px; }
+  .cup-card__name { font-size: 1.1rem; }
+  .cup-card__price { font-size: 1.2rem; }
+  .cup-card__notes { font-size: .75rem; }
+  /* shrink the SVG cup so it fits */
+  .cup-card__art svg { max-height: 180px; }
+  .bean--1 { width: 36px; height: 50px; top: 4%; left: 2%; }
+  .bean--2 { width: 28px; height: 40px; bottom: 8%; right: 4%; }
+  .bean--3 { display: none; }
+
   .hero { padding: 48px 0 64px; }
   .nav__links { display: none; }
   .icon-btn--menu { display: inline-grid; }
@@ -1301,11 +1319,24 @@ em { font-style: italic; }
   .product-detail { grid-template-columns: 1fr; }
   .product-detail__visual { min-height: 280px; }
   .product-detail__body { padding: 32px 24px; }
+
+  /* Smaller category badge on mobile (so it doesn't overlap the drink image) */
+  .product-card__cat {
+    font-size: .58rem;
+    padding: 3px 8px;
+    top: 8px; left: 8px;
+    letter-spacing: .06em;
+  }
 }
 
 @media (max-width: 500px) {
   .featured__grid, .menu-grid, .team-grid { grid-template-columns: 1fr 1fr; }
-  .footer__grid { grid-template-columns: 1fr; gap: 32px; }
+  .footer__grid { grid-template-columns: 1fr; gap: 32px; text-align: center; }
+  .footer__grid > div { display: flex; flex-direction: column; align-items: center; }
+  .logo--footer { justify-content: center; }
+  .footer__tag { margin-left: auto; margin-right: auto; }
+  .footer ul { text-align: center; }
+  .socials { justify-content: center; }
   .hero__stats { flex-direction: column; gap: 12px; }
   .hero__stats div { flex-direction: row; align-items: baseline; gap: 12px; }
   .modal__card { padding: 24px; }
@@ -1317,4 +1348,9 @@ em { font-style: italic; }
   .platform-btn { padding: 14px 16px; }
   .platform-btn__icon { width: 48px; height: 48px; }
   .platform-btn__name { font-size: 1.05rem; }
+  /* Even more compact cup card on small phones */
+  .cup-card { max-width: 240px; padding: 14px; }
+  .cup-card__art svg { max-height: 150px; }
+  .cup-card__name { font-size: 1rem; }
+  .cup-card__price { font-size: 1.1rem; }
 }

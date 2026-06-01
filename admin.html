@@ -141,6 +141,40 @@
     /* Role-based hiding: when body data-role="employee", admin-only stuff disappears */
     body[data-role="employee"] [data-role-admin] { display: none !important; }
 
+    /* Today's Pour edit card */
+    .todays-pour-card {
+      background: linear-gradient(135deg, color-mix(in srgb, var(--accent-2) 14%, var(--paper)), var(--paper));
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .todays-pour-card__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .todays-pour-card__header h3 {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin: 0 0 2px;
+    }
+    .todays-pour-card__header .help {
+      margin: 0;
+    }
+    .todays-pour-card__fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr 120px;
+      gap: 12px;
+    }
+    @media (max-width: 700px) {
+      .todays-pour-card__fields { grid-template-columns: 1fr; }
+    }
+
     /* Categories bar */
     .cat-bar {
       background: var(--bg);
@@ -881,6 +915,31 @@
               <button class="btn btn--primary btn--sm" id="addProductBtn">+ Add Product</button>
             </div>
 
+            <!-- Today's Pour (featured on home page) -->
+            <div class="todays-pour-card">
+              <div class="todays-pour-card__header">
+                <div>
+                  <h3>☕ Today's Pour</h3>
+                  <p class="help">Featured on the home page hero card.</p>
+                </div>
+                <button type="button" class="btn btn--ghost btn--sm" id="savePourBtn">Save</button>
+              </div>
+              <div class="todays-pour-card__fields">
+                <div class="field">
+                  <label>Name</label>
+                  <input type="text" id="f_pourName" placeholder="e.g. Ethiopia Yirgacheffe" />
+                </div>
+                <div class="field">
+                  <label>Tasting notes</label>
+                  <input type="text" id="f_pourNotes" placeholder="e.g. Floral · Citrus · Honey" />
+                </div>
+                <div class="field">
+                  <label>Price</label>
+                  <input type="text" id="f_pourPrice" placeholder="e.g. ₱180" />
+                </div>
+              </div>
+            </div>
+
             <!-- Categories management -->
             <div class="cat-bar">
               <div class="cat-bar__label">Categories</div>
@@ -1415,6 +1474,11 @@
       grab: 'https://food.grab.com/ph/en/',
       facebook: 'https://www.facebook.com/',
     },
+    todaysPour: {
+      name: 'Ethiopia Yirgacheffe',
+      notes: 'Floral · Citrus · Honey',
+      price: '₱180',
+    },
     sheets: {
       sheetId: '1GqPUn-bSaObE-O1qel8ZefmYAYaDE3tTFE5iQo4ekpc',
       appsScriptUrl: '',
@@ -1455,6 +1519,7 @@
         products: stored.products || JSON.parse(JSON.stringify(DEFAULT_DATA.products)),
         contact: { ...DEFAULT_DATA.contact, ...(stored.contact || {}) },
         orderLinks: { ...DEFAULT_DATA.orderLinks, ...(stored.orderLinks || {}) },
+        todaysPour: { ...DEFAULT_DATA.todaysPour, ...(stored.todaysPour || {}) },
         sheets: { ...DEFAULT_DATA.sheets, ...(stored.sheets || {}) },
         syncUrl: stored.syncUrl || '',
         ingredients: stored.ingredients || [],
@@ -1660,6 +1725,11 @@
     $('f_foodpanda').value = state.orderLinks.foodpanda || '';
     $('f_grab').value = state.orderLinks.grab || '';
     $('f_facebook').value = state.orderLinks.facebook || '';
+    // Today's Pour
+    const tp = state.todaysPour || {};
+    $('f_pourName').value = tp.name || '';
+    $('f_pourNotes').value = tp.notes || '';
+    $('f_pourPrice').value = tp.price || '';
     // Sheets config
     $('f_sheetId').value = state.sheets.sheetId || '';
     $('f_appsScriptUrl').value = state.sheets.appsScriptUrl || '';
@@ -1988,6 +2058,7 @@
           products: imported.products || DEFAULT_DATA.products,
           contact: { ...DEFAULT_DATA.contact, ...(imported.contact || {}) },
           orderLinks: { ...DEFAULT_DATA.orderLinks, ...(imported.orderLinks || {}) },
+          todaysPour: { ...DEFAULT_DATA.todaysPour, ...(imported.todaysPour || {}) },
           sheets: { ...DEFAULT_DATA.sheets, ...(imported.sheets || {}) },
           syncUrl: imported.syncUrl || '',
           ingredients: imported.ingredients || [],
@@ -2356,6 +2427,7 @@ function safeParse(s, fallback) {
         products: remote.products && remote.products.length ? remote.products : state.products,
         contact: { ...state.contact, ...(remote.contact || {}) },
         orderLinks: { ...state.orderLinks, ...(remote.orderLinks || {}) },
+        todaysPour: { ...state.todaysPour, ...(remote.todaysPour || {}) },
         sales: remote.sales || [],
         ingredients: remote.ingredients || [],
         restocks: remote.restocks || [],
@@ -2387,6 +2459,19 @@ function safeParse(s, fallback) {
     const el = $('jsonPreview');
     if (el) el.textContent = JSON.stringify(state, null, 2);
   }
+
+  /* =========================================================
+     TODAY'S POUR (featured drink in hero)
+  ========================================================= */
+  $('savePourBtn').addEventListener('click', () => {
+    state.todaysPour = {
+      name: $('f_pourName').value.trim(),
+      notes: $('f_pourNotes').value.trim(),
+      price: $('f_pourPrice').value.trim(),
+    };
+    saveData();
+    toast("Today's Pour updated", 'success');
+  });
 
   /* =========================================================
      CATEGORIES (CRUD)

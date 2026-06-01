@@ -3469,12 +3469,47 @@ function safeParse(s, fallback) {
      - A fresh browser sees the current admin list (latest passwords, photos)
      - Login validates against real data, not the seeded defaults
   ========================================================= */
+  function makeSyncBanner(text) {
+    let b = document.getElementById('syncBanner');
+    if (!b) {
+      b = document.createElement('div');
+      b.id = 'syncBanner';
+      b.className = 'sync-banner';
+      document.body.appendChild(b);
+    }
+    b.innerHTML = `<span class="sync-banner__spinner"></span> <span>${text}</span>`;
+    return b;
+  }
+  function finishSyncBanner(state, text) {
+    const b = document.getElementById('syncBanner');
+    if (!b) return;
+    b.classList.remove('is-ok', 'is-err');
+    if (state === 'ok') b.classList.add('is-ok');
+    if (state === 'err') b.classList.add('is-err');
+    b.innerHTML = `<span>${text}</span>`;
+    setTimeout(() => {
+      b.classList.add('is-fading');
+      setTimeout(() => b.remove(), 400);
+    }, 1500);
+  }
+
+  function setLoginEnabled(enabled) {
+    const form = document.getElementById('loginForm');
+    if (!form) return;
+    const btn = form.querySelector('button[type="submit"]');
+    [...form.querySelectorAll('input')].forEach(i => { i.disabled = !enabled; });
+    if (btn) {
+      btn.disabled = !enabled;
+      btn.textContent = enabled ? 'Log In' : 'Syncing…';
+      btn.style.opacity = enabled ? '' : '.65';
+      btn.style.cursor = enabled ? '' : 'wait';
+    }
+  }
+
   async function adminInitialSync() {
-    // Show a non-blocking status banner so user knows we're syncing
-    const banner = document.createElement('div');
-    banner.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--ink);color:var(--cream);padding:10px 18px;border-radius:99px;font-size:.85rem;box-shadow:0 6px 20px rgba(0,0,0,.15);transition:opacity .3s';
-    banner.innerHTML = '⏳ Syncing from Google Sheet…';
-    document.body.appendChild(banner);
+    document.body.dataset.syncing = 'true';
+    setLoginEnabled(false);
+    makeSyncBanner('Syncing from Google Sheet…');
 
     try {
       const url = `${APPS_SCRIPT_URL}?action=getAll&t=${Date.now()}`;
@@ -3484,7 +3519,6 @@ function safeParse(s, fallback) {
       if (!json.ok || !json.data) throw new Error(json.error || 'No data');
 
       const r = json.data;
-      // Merge into state — sheet is the source of truth for everything below
       state = {
         ...state,
         products: (r.products && r.products.length) ? r.products : state.products,
@@ -3502,23 +3536,26 @@ function safeParse(s, fallback) {
       };
       state.sheets.lastPull = new Date().toISOString();
       localStorage.setItem('kugon_data', JSON.stringify(state));
-
-      banner.innerHTML = '✓ Synced — login with your latest credentials';
-      banner.style.background = 'var(--success, #16a34a)';
+      finishSyncBanner('ok', '✓ Synced — login with latest credentials');
     } catch (err) {
       console.warn('Initial sync failed:', err);
-      banner.innerHTML = '⚠ Could not sync from sheet — using local data';
-      banner.style.background = 'var(--danger, #dc2626)';
+      finishSyncBanner('err', '⚠ Could not sync — using local data');
+    } finally {
+      document.body.removeAttribute('data-syncing');
+      setLoginEnabled(true);
     }
-    setTimeout(() => {
-      banner.style.opacity = '0';
-      setTimeout(() => banner.remove(), 400);
-    }, 2200);
   }
 
   /* ---------- INIT ---------- */
   (async () => {
+    // Failsafe: if sync hangs for more than 8s, unblock the login form
+    const failsafe = setTimeout(() => {
+      document.body.removeAttribute('data-syncing');
+      setLoginEnabled(true);
+      finishSyncBanner('err', '⚠ Sync timed out — using local data');
+    }, 8000);
     await adminInitialSync();
+    clearTimeout(failsafe);
     checkSession();
   })();
   </script>

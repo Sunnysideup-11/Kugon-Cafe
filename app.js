@@ -486,50 +486,97 @@ document.getElementById('contactForm').addEventListener('submit', e => {
   e.target.reset();
 });
 
-/* ---------- SHEETS SYNC (optional, fetches latest from Apps Script on page load) ---------- */
+/* ---------- SHEETS SYNC (fetches latest from Apps Script on page load) ---------- */
 async function trySyncFromSheets() {
-  // Prefer the baked-in constant; fall back to localStorage (admin-configured)
   const url = (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'PASTE_YOUR_URL_HERE')
     ? APPS_SCRIPT_URL
     : (DATA.sheets && DATA.sheets.appsScriptUrl);
   if (!url) return;
-  try {
-    const res = await fetch(`${url}?action=getAll&t=${Date.now()}`, {
-      method: 'GET',
-      cache: 'no-store',
-    });
-    if (!res.ok) throw new Error('Fetch failed: ' + res.status);
-    const json = await res.json();
-    if (!json.ok || !json.data) return;
-    const remote = json.data;
-    if (remote.products && remote.products.length > 0) {
-      const merged = {
-        ...DATA,
-        products: remote.products,
-        contact: { ...DATA.contact, ...(remote.contact || {}) },
-        orderLinks: { ...DATA.orderLinks, ...(remote.orderLinks || {}) },
-        team: (remote.team && remote.team.length) ? remote.team : DATA.team,
-      };
-      localStorage.setItem('kugon_data', JSON.stringify({
-        ...JSON.parse(localStorage.getItem('kugon_data') || '{}'),
-        products: merged.products,
-        contact: merged.contact,
-        orderLinks: merged.orderLinks,
-        team: merged.team,
-      }));
-      DATA = loadData();
-      PRODUCTS = DATA.products;
-      applyDataToDom();
-      renderFeatured();
-      if (document.querySelector('.route--menu.is-active')) renderMenu();
-      console.log('Synced data from Google Sheets');
-    }
-  } catch (err) {
-    console.warn('Sheets sync skipped:', err.message);
+  const res = await fetch(`${url}?action=getAll&t=${Date.now()}`, {
+    method: 'GET',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error('Fetch failed: ' + res.status);
+  const json = await res.json();
+  if (!json.ok || !json.data) return;
+  const remote = json.data;
+  if (remote.products && remote.products.length > 0) {
+    const merged = {
+      ...DATA,
+      products: remote.products,
+      contact: { ...DATA.contact, ...(remote.contact || {}) },
+      orderLinks: { ...DATA.orderLinks, ...(remote.orderLinks || {}) },
+      todaysPour: { ...DATA.todaysPour, ...(remote.todaysPour || {}) },
+      team: (remote.team && remote.team.length) ? remote.team : DATA.team,
+    };
+    localStorage.setItem('kugon_data', JSON.stringify({
+      ...JSON.parse(localStorage.getItem('kugon_data') || '{}'),
+      products: merged.products,
+      contact: merged.contact,
+      orderLinks: merged.orderLinks,
+      todaysPour: merged.todaysPour,
+      team: merged.team,
+    }));
+    DATA = loadData();
+    PRODUCTS = DATA.products;
+    applyDataToDom();
+    renderFeatured();
+    if (document.querySelector('.route--menu.is-active')) renderMenu();
+    console.log('Synced data from Google Sheets');
+  }
+}
+
+/* ---------- SYNC BANNER (small UX flag while loading) ---------- */
+function showSyncBanner(text) {
+  let b = document.getElementById('syncBanner');
+  if (!b) {
+    b = document.createElement('div');
+    b.id = 'syncBanner';
+    b.className = 'sync-banner';
+    document.body.appendChild(b);
+  }
+  b.innerHTML = `<span class="sync-banner__spinner"></span> <span>${text}</span>`;
+  return b;
+}
+function setSyncBanner(state, text) {
+  const b = document.getElementById('syncBanner');
+  if (!b) return;
+  b.classList.remove('is-ok', 'is-err');
+  if (state === 'ok') b.classList.add('is-ok');
+  if (state === 'err') b.classList.add('is-err');
+  // Remove the spinner if done
+  if (state === 'ok' || state === 'err') {
+    b.innerHTML = `<span>${text}</span>`;
+    setTimeout(() => {
+      b.classList.add('is-fading');
+      setTimeout(() => b.remove(), 400);
+    }, 1500);
   }
 }
 
 /* ---------- INIT ---------- */
 applyDataToDom();
 renderFeatured();
-trySyncFromSheets();
+document.body.dataset.syncing = 'true';
+showSyncBanner('Loading latest menu…');
+
+// Failsafe: stop the syncing state after 6s no matter what
+const syncTimeout = setTimeout(() => {
+  if (document.body.dataset.syncing) {
+    document.body.removeAttribute('data-syncing');
+    setSyncBanner('err', 'Showing cached menu');
+  }
+}, 6000);
+
+trySyncFromSheets()
+  .then(() => {
+    clearTimeout(syncTimeout);
+    document.body.removeAttribute('data-syncing');
+    setSyncBanner('ok', '✓ Latest menu loaded');
+  })
+  .catch(err => {
+    clearTimeout(syncTimeout);
+    document.body.removeAttribute('data-syncing');
+    setSyncBanner('err', 'Showing cached menu');
+    console.warn('Sheets sync failed:', err.message);
+  });

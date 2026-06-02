@@ -174,18 +174,32 @@ function applyDataToDom() {
       iframe.src = `https://maps.google.com/maps?q=${mapLat},${mapLng}&z=${mapZoom || 17}&output=embed`;
     }
   }
-  // Order platform links
-  document.querySelectorAll('a.platform-btn--foodpanda').forEach(a => a.href = DATA.orderLinks.foodpanda);
-  document.querySelectorAll('a.platform-btn--grab').forEach(a => a.href = DATA.orderLinks.grab);
-  document.querySelectorAll('a.platform-btn--facebook').forEach(a => a.href = DATA.orderLinks.facebook);
+  // Order platform links — both the popup buttons AND the footer direct links
+  document.querySelectorAll('a.platform-btn--foodpanda, a.footer-order-link--foodpanda').forEach(a => a.href = DATA.orderLinks.foodpanda);
+  document.querySelectorAll('a.platform-btn--grab, a.footer-order-link--grab').forEach(a => a.href = DATA.orderLinks.grab);
+  document.querySelectorAll('a.platform-btn--facebook, a.footer-order-link--facebook').forEach(a => a.href = DATA.orderLinks.facebook);
   // Today's Pour (hero card)
   if (DATA.todaysPour) {
     const pName = document.getElementById('pourName');
     const pNotes = document.getElementById('pourNotes');
     const pPrice = document.getElementById('pourPrice');
+    const pImg = document.getElementById('pourImage');
+    const pSvg = document.getElementById('pourSvg');
     if (pName) pName.textContent = DATA.todaysPour.name || '';
     if (pNotes) pNotes.textContent = DATA.todaysPour.notes || '';
     if (pPrice) pPrice.textContent = DATA.todaysPour.price || '';
+    if (pImg && pSvg) {
+      if (DATA.todaysPour.image) {
+        pImg.src = DATA.todaysPour.image;
+        pImg.alt = DATA.todaysPour.name || "Today's pour";
+        pImg.hidden = false;
+        pSvg.style.display = 'none';
+      } else {
+        pImg.hidden = true;
+        pImg.removeAttribute('src');
+        pSvg.style.display = '';
+      }
+    }
   }
   // Team — "The humans behind the bar"
   const teamGrid = document.getElementById('teamGrid');

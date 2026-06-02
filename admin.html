@@ -393,6 +393,51 @@
     }
 
     /* Sales */
+    .sales-entry-card {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+    }
+    .sales-summary-tabs {
+      display: inline-flex;
+      gap: 4px;
+      background: var(--bg);
+      padding: 4px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--line);
+    }
+    .sales-tab {
+      padding: 8px 18px;
+      border-radius: var(--radius-pill);
+      font-size: .88rem;
+      font-weight: 600;
+      color: var(--ink-soft);
+      transition: background .15s, color .15s;
+    }
+    .sales-tab.is-active {
+      background: var(--ink); color: var(--bg);
+    }
+    .sales-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      margin-top: 8px;
+    }
+    .sales-table th, .sales-table td {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line);
+    }
+    .sales-table th {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--ink-soft);
+      font-weight: 600;
+    }
+    .sales-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .sales-table th.num { text-align: right; }
     .sales-entry {
       background: var(--bg);
       border: 1px solid var(--line);
@@ -786,10 +831,6 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             Sales
           </button>
-          <button class="admin-nav__item" data-tab="inventory">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg>
-            Inventory
-          </button>
           <button class="admin-nav__item" data-tab="employees" data-role-admin>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             Employees
@@ -898,9 +939,12 @@
               </div>
             </div>
             <div class="field">
-              <label>Quick: paste a Google Maps short link</label>
-              <input type="text" id="f_mapShortLink" placeholder="https://maps.app.goo.gl/..." />
-              <div class="field__hint">Or paste any maps URL with <code>@lat,lng,zoom</code> — coordinates will be extracted.</div>
+              <label>Quick: paste a Google Maps URL</label>
+              <input type="text" id="f_mapShortLink" placeholder="https://www.google.com/maps/place/.../@15.4837495,120.5904362,17z..." />
+              <div class="field__hint">
+                Paste the <strong>full</strong> URL (with <code>@lat,lng</code>) from your browser's address bar — coordinates will be extracted automatically.<br>
+                Short links like <code>maps.app.goo.gl/XXXX</code> don't contain coordinates and won't work directly.
+              </div>
             </div>
           </div>
 
@@ -955,6 +999,23 @@
                   <input type="text" id="f_pourPrice" placeholder="e.g. ₱180" />
                 </div>
               </div>
+              <div class="field" style="margin-top:14px">
+                <label>Image (optional)</label>
+                <input type="text" id="f_pourImageUrl" class="image-url-input" placeholder="🔗 Paste Google Drive share URL or image URL" />
+                <div class="field__hint" style="margin-top:-6px">Drive URL recommended. Leave blank to show the default coffee-cup illustration.</div>
+                <div class="image-dropzone" id="pourDropzone">
+                  <div id="pourPreviewWrap" hidden>
+                    <img id="pourPreview" alt="Preview" />
+                    <button type="button" class="btn btn--ghost btn--sm" id="pourRemoveImageBtn">Remove image</button>
+                  </div>
+                  <div id="pourImageEmpty">
+                    <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
+                    <p style="margin:8px 0 4px;font-size:.9rem">…or upload directly</p>
+                    <p class="field__hint" style="margin:0">A vertical drink shot looks best.</p>
+                  </div>
+                  <input type="file" id="pourFileInput" accept="image/*" hidden />
+                </div>
+              </div>
             </div>
 
             <!-- Categories management -->
@@ -984,84 +1045,58 @@
 
           <!-- TAB: SALES -->
           <div class="admin-panel" data-panel="sales" hidden>
-            <h2>Daily Sales</h2>
-            <p class="help">Record total sales for each day. Optionally itemize by product.</p>
+            <h2>Sales Tracking</h2>
+            <p class="help">Record each sale per product, then view summaries Daily / Monthly / Yearly.</p>
 
-            <div class="sales-entry">
-              <div class="field-row--3 field-row">
+            <!-- Sale entry form -->
+            <div class="sales-entry-card">
+              <h3 style="font-family:var(--font-display);font-size:1.05rem;margin:0 0 12px">Record a sale</h3>
+              <div class="field-row">
                 <div class="field">
                   <label>Date</label>
                   <input type="date" id="f_saleDate" />
                 </div>
                 <div class="field">
-                  <label>Daily total (₱)</label>
-                  <input type="number" id="f_saleTotal" min="0" step="any" placeholder="0" />
-                </div>
-                <div class="field" style="justify-content:flex-end">
-                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:.9rem;margin-top:24px">
-                    <input type="checkbox" id="f_saleItemize" />
-                    <span>Itemize by product</span>
-                  </label>
+                  <label>Product</label>
+                  <select id="f_saleProductId"></select>
                 </div>
               </div>
-
-              <div class="field" id="saleItemsWrap" hidden>
-                <div class="field__label">Sold today (quantity per product)</div>
-                <div id="saleItemsList" class="sale-items"></div>
+              <div class="field-row">
+                <div class="field">
+                  <label>Quantity</label>
+                  <input type="number" id="f_saleQty" min="1" step="1" value="1" />
+                </div>
+                <div class="field">
+                  <label>Amount (price per item)</label>
+                  <input type="number" id="f_saleAmount" min="0" step="any" placeholder="0" />
+                </div>
+                <div class="field">
+                  <label>Total amount</label>
+                  <input type="number" id="f_saleTotal" readonly style="background:var(--bg);opacity:.8" />
+                </div>
               </div>
-
-              <div class="field">
-                <label>Notes (optional)</label>
-                <input type="text" id="f_saleNote" placeholder="e.g. busy Saturday, rain affected foot traffic" />
-              </div>
-
-              <div style="display:flex;gap:8px">
-                <button class="btn btn--primary btn--sm" id="saveSaleBtn">Save Entry</button>
-                <button class="btn btn--ghost btn--sm" id="clearSaleBtn">Clear Form</button>
+              <div style="display:flex;gap:8px;margin-top:6px">
+                <button class="btn btn--primary btn--sm" id="saveSaleBtn">+ Add Sale</button>
+                <button class="btn btn--ghost btn--sm" id="clearSaleBtn">Clear</button>
               </div>
             </div>
 
-            <h3 style="margin:32px 0 8px;font-family:var(--font-display);font-size:1.2rem">
-              History
-              <span id="salesSummary" style="font-size:.85rem;color:var(--ink-soft);font-weight:400;font-family:var(--font-body);margin-left:8px"></span>
+            <!-- Summary tabs -->
+            <div class="sales-summary-tabs" style="margin-top:24px">
+              <button class="sales-tab is-active" data-saleview="daily">Daily</button>
+              <button class="sales-tab" data-saleview="monthly">Monthly</button>
+              <button class="sales-tab" data-saleview="yearly">Yearly</button>
+            </div>
+
+            <!-- Stats cards -->
+            <div class="inv-stats" id="salesStats"></div>
+
+            <!-- Sales history -->
+            <h3 style="margin:24px 0 8px;font-family:var(--font-display);font-size:1.1rem">
+              <span id="salesViewTitle">Today's sales</span>
+              <span id="salesViewDate" style="font-size:.85rem;color:var(--ink-soft);font-weight:400;font-family:var(--font-body);margin-left:8px"></span>
             </h3>
             <div id="salesHistory"></div>
-          </div>
-
-          <!-- TAB: INVENTORY -->
-          <div class="admin-panel" data-panel="inventory" hidden>
-            <h2>Inventory</h2>
-            <p class="help">Track ingredients, expenses (restocks), and per-product costs.</p>
-
-            <!-- Stats -->
-            <div class="inv-stats" id="invStats"></div>
-
-            <!-- INGREDIENTS -->
-            <div class="inv-section">
-              <div class="inv-section__head">
-                <h3>Ingredients</h3>
-                <button class="btn btn--primary btn--sm" id="addIngredientBtn">+ Add Ingredient</button>
-              </div>
-              <div id="ingredientsList"></div>
-            </div>
-
-            <!-- RESTOCKS -->
-            <div class="inv-section">
-              <div class="inv-section__head">
-                <h3>Restocks <span style="color:var(--ink-soft);font-weight:400;font-size:.85rem;margin-left:6px">— expenses log</span></h3>
-                <button class="btn btn--primary btn--sm" id="addRestockBtn">+ Log Restock</button>
-              </div>
-              <div id="restocksList"></div>
-            </div>
-
-            <!-- RECIPES & COST ANALYSIS -->
-            <div class="inv-section">
-              <div class="inv-section__head">
-                <h3>Recipes & Cost Analysis</h3>
-              </div>
-              <p class="help">Define which ingredients go into each product. Cost-to-make is calculated automatically.</p>
-              <div id="recipesList"></div>
-            </div>
           </div>
 
           <!-- TAB: EMPLOYEES (admin only) -->
@@ -1121,11 +1156,14 @@
               </button>
             </div>
 
-            <div class="field" style="margin-top:14px">
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:.92rem">
-                <input type="checkbox" id="f_autoSync" />
-                <span>Auto-push to sheet on every save (recommended once connection is verified)</span>
-              </label>
+            <div class="field" style="margin-top:14px;background:var(--bg);padding:14px 18px;border-radius:var(--radius);border:1px solid var(--line)">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:1.2rem">ℹ️</span>
+                <div>
+                  <strong style="font-size:.92rem">Manual push only.</strong>
+                  <div class="field__hint" style="margin:2px 0 0">Local changes save instantly to your browser. Click <strong>Push to Sheet</strong> when you want to publish them to the website.</div>
+                </div>
+              </div>
             </div>
 
             <!-- Setup guide -->
@@ -1245,110 +1283,6 @@
     </div>
   </div>
 
-  <!-- ============== INGREDIENT MODAL ============== -->
-  <div class="modal" id="ingredientModal" aria-hidden="true">
-    <div class="modal__card">
-      <button class="icon-btn modal__close" data-close-modal aria-label="Close">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>
-      <h3 id="ingredientModalTitle" style="font-family:var(--font-display);font-size:1.5rem;margin:0 0 16px">Add Ingredient</h3>
-      <form id="ingredientForm" style="display:flex;flex-direction:column;gap:14px">
-        <input type="hidden" name="id" />
-        <div class="field">
-          <label>Name</label>
-          <input type="text" name="name" required placeholder="e.g. Coffee Beans, Whole Milk" />
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label>Unit</label>
-            <select name="unit" required>
-              <option value="g">Grams (g)</option>
-              <option value="kg">Kilograms (kg)</option>
-              <option value="ml">Milliliters (ml)</option>
-              <option value="L">Liters (L)</option>
-              <option value="pcs">Pieces (pcs)</option>
-              <option value="oz">Ounces (oz)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Cost per unit (₱)</label>
-            <input type="number" name="unitCost" required min="0" step="any" placeholder="e.g. 1.5" />
-          </div>
-        </div>
-        <div class="field">
-          <label>Current stock (in chosen unit)</label>
-          <input type="number" name="stock" min="0" step="any" value="0" />
-          <div class="field__hint">Tip: leave at 0 if unknown — restocks will add to this.</div>
-        </div>
-        <button class="btn btn--primary btn--full" type="submit">Save Ingredient</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- ============== RESTOCK MODAL ============== -->
-  <div class="modal" id="restockModal" aria-hidden="true">
-    <div class="modal__card modal__card--wide" style="max-width:640px;padding:36px">
-      <button class="icon-btn modal__close" data-close-modal aria-label="Close">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>
-      <h3 style="font-family:var(--font-display);font-size:1.5rem;margin:0 0 4px">Log a Restock</h3>
-      <p class="help">Add ingredients you purchased — stock levels update automatically.</p>
-      <form id="restockForm" style="display:flex;flex-direction:column;gap:14px">
-        <input type="hidden" name="id" />
-        <div class="field-row">
-          <div class="field">
-            <label>Date</label>
-            <input type="date" name="date" required />
-          </div>
-          <div class="field">
-            <label>Supplier / Note (optional)</label>
-            <input type="text" name="note" placeholder="e.g. Coffee Roaster Co" />
-          </div>
-        </div>
-
-        <div class="field">
-          <div class="field__label">Items purchased</div>
-          <div id="restockItems"></div>
-          <button type="button" class="btn btn--ghost btn--sm" id="addRestockItemBtn" style="align-self:flex-start;margin-top:6px">+ Add item</button>
-        </div>
-
-        <div class="restock-total">
-          <span>Total expense</span>
-          <strong id="restockTotal">₱0.00</strong>
-        </div>
-
-        <button class="btn btn--primary btn--full" type="submit">Save Restock</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- ============== RECIPE MODAL ============== -->
-  <div class="modal" id="recipeModal" aria-hidden="true">
-    <div class="modal__card modal__card--wide" style="max-width:640px;padding:36px">
-      <button class="icon-btn modal__close" data-close-modal aria-label="Close">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>
-      <h3 id="recipeModalTitle" style="font-family:var(--font-display);font-size:1.5rem;margin:0 0 4px">Recipe</h3>
-      <p class="help" id="recipeModalSub">Add ingredients used to make one serving.</p>
-      <form id="recipeForm" style="display:flex;flex-direction:column;gap:14px">
-        <input type="hidden" name="productId" />
-
-        <div class="field">
-          <div class="field__label">Ingredients per serving</div>
-          <div id="recipeItems"></div>
-          <button type="button" class="btn btn--ghost btn--sm" id="addRecipeItemBtn" style="align-self:flex-start;margin-top:6px">+ Add ingredient</button>
-        </div>
-
-        <div class="recipe-summary">
-          <div class="recipe-summary__row"><span>Sell price</span><strong id="recipeSellPrice">₱0</strong></div>
-          <div class="recipe-summary__row"><span>Cost to make</span><strong id="recipeCost">₱0.00</strong></div>
-          <div class="recipe-summary__row recipe-summary__row--profit"><span>Profit per serving</span><strong id="recipeProfit">₱0.00</strong></div>
-        </div>
-
-        <button class="btn btn--primary btn--full" type="submit">Save Recipe</button>
-      </form>
-    </div>
-  </div>
 
   <!-- ============== EMPLOYEE MODAL (admin add/edit) ============== -->
   <div class="modal" id="employeeModal" aria-hidden="true">
@@ -1508,6 +1442,7 @@
       name: 'Ethiopia Yirgacheffe',
       notes: 'Floral · Citrus · Honey',
       price: '₱180',
+      image: '',
     },
     sheets: {
       sheetId: '1GqPUn-bSaObE-O1qel8ZefmYAYaDE3tTFE5iQo4ekpc',
@@ -1517,11 +1452,9 @@
       lastPull: null,
     },
     syncUrl: '', // legacy, kept for back-compat
-    // ---- INVENTORY ----
-    ingredients: [],         // [{ id, name, unit, unitCost, stock }]
-    restocks: [],            // [{ id, date, items:[{ingredientId, amount, cost}], total, note }]
-    sales: [],               // [{ id, date, total, items:[{productId, qty}], note }]
-    recipes: {},             // { productId: [{ ingredientId, amount }] }
+    // ---- SALES ----
+    // Each entry is ONE line: { id, date, productId, productName, quantity, amount, totalAmount }
+    sales: [],
     // ---- AUTH ----
     employees: [],           // [{ id, username, name, password, createdAt, image }]
     admins: [                // [{ id, username, name, password, createdAt, image }]
@@ -1552,10 +1485,7 @@
         todaysPour: { ...DEFAULT_DATA.todaysPour, ...(stored.todaysPour || {}) },
         sheets: { ...DEFAULT_DATA.sheets, ...(stored.sheets || {}) },
         syncUrl: stored.syncUrl || '',
-        ingredients: stored.ingredients || [],
-        restocks: stored.restocks || [],
         sales: stored.sales || [],
-        recipes: stored.recipes || {},
         employees: stored.employees || [],
         admins: (stored.admins && stored.admins.length) ? stored.admins : [...DEFAULT_DATA.admins],
         team: (stored.team && stored.team.length) ? stored.team : JSON.parse(JSON.stringify(DEFAULT_DATA.team)),
@@ -1569,12 +1499,11 @@
     localStorage.setItem('kugon_data', JSON.stringify(state));
     dirty = false;
     updateStatus('saved');
-    if (showToast) toast('Changes saved — refresh index.html to see them live', 'success');
+    if (showToast) toast('Saved locally — click "Push to Sheet" when ready to publish', 'success');
     refreshJsonPreview();
-    // Auto-push to sheets if enabled
-    if (state.sheets && state.sheets.autoSync) {
-      pushToSheets(false).catch(err => console.warn('Auto-push failed:', err));
-    }
+    // NOTE: We do NOT auto-push to sheets here. Pushing only happens on
+    // explicit "Push to Sheet" button click. This prevents the runaway
+    // push-on-every-save bug.
   }
 
   function markDirty() {
@@ -1671,8 +1600,8 @@
     renderTeam();
     renderEmployees();
     renderSales();
-    renderInventory();
     renderProfile();
+    renderTodaysPour();
     refreshJsonPreview();
     injectAppsScriptCode();
     refreshSheetsStatus();
@@ -1755,15 +1684,9 @@
     $('f_foodpanda').value = state.orderLinks.foodpanda || '';
     $('f_grab').value = state.orderLinks.grab || '';
     $('f_facebook').value = state.orderLinks.facebook || '';
-    // Today's Pour
-    const tp = state.todaysPour || {};
-    $('f_pourName').value = tp.name || '';
-    $('f_pourNotes').value = tp.notes || '';
-    $('f_pourPrice').value = tp.price || '';
     // Sheets config
     $('f_sheetId').value = state.sheets.sheetId || '';
     $('f_appsScriptUrl').value = APPS_SCRIPT_URL;
-    $('f_autoSync').checked = !!state.sheets.autoSync;
   }
 
   // Listen for input changes to mark dirty
@@ -1774,29 +1697,46 @@
     });
   });
 
-  // Sheets config — saves immediately (not via the Save bar)
+  // Sheet ID — saves locally on change (not pushed until user clicks Push to Sheet)
   document.addEventListener('change', e => {
     if (e.target.id === 'f_sheetId') {
       state.sheets.sheetId = e.target.value.trim();
       saveData(false);
     }
   });
-  $('f_autoSync').addEventListener('change', e => {
-    state.sheets.autoSync = e.target.checked;
-    saveData();
-    toast(e.target.checked ? 'Auto-push enabled' : 'Auto-push disabled');
-  });
 
   // Maps short-link extractor (best effort)
   $('f_mapShortLink').addEventListener('input', e => {
-    const v = e.target.value;
-    const m = v.match(/@(-?\d+\.\d+),(-?\d+\.\d+),(\d+(\.\d+)?)z/);
-    if (m) {
-      $('f_mapLat').value = m[1];
-      $('f_mapLng').value = m[2];
-      $('f_mapZoom').value = Math.round(parseFloat(m[3]));
+    const v = e.target.value.trim();
+    if (!v) return;
+
+    // Short links don't contain coordinates — they have to be expanded server-side
+    if (/maps\.app\.goo\.gl|goo\.gl\/maps/.test(v)) {
+      toast("Short links don't include coordinates — open it in browser, copy the full URL from the address bar, then paste here.", 'error');
+      return;
+    }
+
+    // Try !3d{lat}!4d{lng} (most accurate — actual place coords)
+    let lat = null, lng = null, zoom = null;
+    let m = v.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+    if (m) { lat = m[1]; lng = m[2]; }
+
+    // Fallback: @lat,lng,zoom
+    if (!lat) {
+      m = v.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (m) { lat = m[1]; lng = m[2]; }
+    }
+
+    // Try to grab zoom separately (e.g. ",17z" or ",15.5z")
+    const zMatch = v.match(/,(\d+(?:\.\d+)?)z/);
+    if (zMatch) zoom = Math.round(parseFloat(zMatch[1]));
+
+    if (lat && lng) {
+      $('f_mapLat').value = lat;
+      $('f_mapLng').value = lng;
+      if (zoom) $('f_mapZoom').value = zoom;
       markDirty();
-      toast('Coordinates extracted from URL', 'success');
+      toast(`Coordinates extracted: ${lat}, ${lng}`, 'success');
     }
   });
 
@@ -2134,10 +2074,7 @@
           todaysPour: { ...DEFAULT_DATA.todaysPour, ...(imported.todaysPour || {}) },
           sheets: { ...DEFAULT_DATA.sheets, ...(imported.sheets || {}) },
           syncUrl: imported.syncUrl || '',
-          ingredients: imported.ingredients || [],
-          restocks: imported.restocks || [],
           sales: imported.sales || [],
-          recipes: imported.recipes || {},
           employees: imported.employees || [],
           admins: (imported.admins && imported.admins.length) ? imported.admins : [...DEFAULT_DATA.admins],
           team: (imported.team && imported.team.length) ? imported.team : JSON.parse(JSON.stringify(DEFAULT_DATA.team)),
@@ -2172,8 +2109,7 @@ const SHEET_SCHEMAS = {
   'Product':            ['id','name','category','price','desc','long','notes','serving','caffeine','color','image'],
   'Contact & Location': ['key','value'],
   'Links':              ['key','value'],
-  'Sales':              ['id','date','total','items','note'],
-  'Inventory':          ['type','id','name','unit','unitCost','stock','date','note','items','total','productId'],
+  'Sales':              ['date','productId','productName','quantity','amount','totalAmount'],
   'Employee':           ['id','username','name','password','createdAt','image'],
   'Categories':         ['name'],
   'Admin':              ['id','username','name','password','createdAt','image'],
@@ -2269,26 +2205,14 @@ function getAll() {
   readSheet('Links').forEach(r => { if (r.key) orderLinks[r.key] = r.value; });
 
   const sales = readSheet('Sales').map(r => ({
-    id: String(r.id), date: String(r.date), total: Number(r.total) || 0,
-    items: r.items ? safeParse(r.items, []) : [], note: r.note
+    id: 's' + String(r.date) + '_' + String(r.productId) + '_' + Math.random().toString(36).slice(2,7),
+    date: String(r.date),
+    productId: String(r.productId || ''),
+    productName: String(r.productName || ''),
+    quantity: Number(r.quantity) || 0,
+    amount: Number(r.amount) || 0,
+    totalAmount: Number(r.totalAmount) || 0,
   }));
-
-  const ingredients = [], restocks = [], recipes = {};
-  readSheet('Inventory').forEach(r => {
-    if (r.type === 'ingredient') {
-      ingredients.push({
-        id: String(r.id), name: r.name, unit: r.unit,
-        unitCost: Number(r.unitCost) || 0, stock: Number(r.stock) || 0
-      });
-    } else if (r.type === 'restock') {
-      restocks.push({
-        id: String(r.id), date: String(r.date), note: r.note,
-        items: safeParse(r.items, []), total: Number(r.total) || 0
-      });
-    } else if (r.type === 'recipe') {
-      if (r.productId) recipes[r.productId] = safeParse(r.items, []);
-    }
-  });
 
   const employees = readSheet('Employee').map(r => ({
     id: String(r.id), username: r.username, name: r.name,
@@ -2310,7 +2234,7 @@ function getAll() {
 
   return {
     ok: true,
-    data: { products, contact, orderLinks, sales, ingredients, restocks, recipes, employees, admins, team, categories }
+    data: { products, contact, orderLinks, sales, employees, admins, team, categories }
   };
 }
 
@@ -2334,24 +2258,14 @@ function pushAll(data) {
   }
   if (data.sales) {
     writeSheet('Sales', data.sales.map(s => ({
-      id: s.id, date: s.date, total: s.total,
-      items: JSON.stringify(s.items || []), note: s.note || ''
+      date: s.date,
+      productId: s.productId || '',
+      productName: s.productName || '',
+      quantity: s.quantity || 0,
+      amount: s.amount || 0,
+      totalAmount: s.totalAmount || ((s.amount || 0) * (s.quantity || 0)),
     })));
   }
-  // Inventory: merge ingredients + restocks + recipes into one tab using 'type'
-  const invRows = [];
-  (data.ingredients || []).forEach(i => invRows.push({
-    type: 'ingredient', id: i.id, name: i.name, unit: i.unit,
-    unitCost: i.unitCost, stock: i.stock
-  }));
-  (data.restocks || []).forEach(r => invRows.push({
-    type: 'restock', id: r.id, date: r.date, note: r.note || '',
-    items: JSON.stringify(r.items || []), total: r.total
-  }));
-  Object.entries(data.recipes || {}).forEach(([pid, items]) => invRows.push({
-    type: 'recipe', items: JSON.stringify(items || []), productId: pid
-  }));
-  writeSheet('Inventory', invRows);
 
   if (data.employees) {
     writeSheet('Employee', data.employees.map(e => ({
@@ -2502,9 +2416,6 @@ function safeParse(s, fallback) {
         orderLinks: { ...state.orderLinks, ...(remote.orderLinks || {}) },
         todaysPour: { ...state.todaysPour, ...(remote.todaysPour || {}) },
         sales: remote.sales || [],
-        ingredients: remote.ingredients || [],
-        restocks: remote.restocks || [],
-        recipes: remote.recipes || {},
         employees: remote.employees || [],
         admins: (remote.admins && remote.admins.length) ? remote.admins : state.admins,
         team: (remote.team && remote.team.length) ? remote.team : state.team,
@@ -2516,9 +2427,10 @@ function safeParse(s, fallback) {
       populateForms();
       renderCategoryPills();
       renderProductList();
+      renderTeam();
       renderEmployees();
       renderSales();
-      renderInventory();
+      renderTodaysPour();
       refreshJsonPreview();
       setSheetsStatus('ok', 'Pulled from sheet ✓', new Date().toLocaleString());
       toast('Data pulled from sheet', 'success');
@@ -2536,14 +2448,43 @@ function safeParse(s, fallback) {
   /* =========================================================
      TODAY'S POUR (featured drink in hero)
   ========================================================= */
+  let currentPourImage = null;
+  let pourImageZone = null;
+
+  function ensurePourZone() {
+    if (pourImageZone) return;
+    pourImageZone = wireUpImageDropzone({
+      dropzoneId: 'pourDropzone',
+      fileInputId: 'pourFileInput',
+      previewWrapId: 'pourPreviewWrap',
+      previewImgId: 'pourPreview',
+      emptyId: 'pourImageEmpty',
+      removeBtnId: 'pourRemoveImageBtn',
+      urlInputId: 'f_pourImageUrl',
+      maxDim: 800,
+      onLoaded: dataUrl => { currentPourImage = dataUrl; },
+    });
+  }
+
+  function renderTodaysPour() {
+    ensurePourZone();
+    const tp = state.todaysPour || {};
+    $('f_pourName').value = tp.name || '';
+    $('f_pourNotes').value = tp.notes || '';
+    $('f_pourPrice').value = tp.price || '';
+    currentPourImage = tp.image || null;
+    pourImageZone.show(currentPourImage);
+  }
+
   $('savePourBtn').addEventListener('click', () => {
     state.todaysPour = {
       name: $('f_pourName').value.trim(),
       notes: $('f_pourNotes').value.trim(),
       price: $('f_pourPrice').value.trim(),
+      image: currentPourImage || '',
     };
     saveData();
-    toast("Today's Pour updated", 'success');
+    toast("Today's Pour saved locally — Push to Sheet when ready", 'success');
   });
 
   /* =========================================================
@@ -2946,7 +2887,7 @@ function safeParse(s, fallback) {
   });
 
   /* =========================================================
-     SALES
+     SALES TRACKING (per-product entries, with daily/monthly/yearly views)
   ========================================================= */
   function todayStr() {
     const d = new Date();
@@ -2954,514 +2895,202 @@ function safeParse(s, fallback) {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   }
 
+  let currentSalesView = 'daily';  // 'daily' | 'monthly' | 'yearly'
+
   function renderSales() {
-    // Default date to today on first load
     if (!$('f_saleDate').value) $('f_saleDate').value = todayStr();
-    renderSaleItemsForm();
-    renderSalesHistory();
+    // Product dropdown
+    const select = $('f_saleProductId');
+    select.innerHTML = state.products.map(p =>
+      `<option value="${escapeHtml(p.id)}" data-price="${p.price}">${escapeHtml(p.name)} — ₱${p.price}</option>`
+    ).join('');
+    // Auto-fill amount from selected product's price
+    updateSaleAmount();
+    renderSalesView();
   }
 
-  function renderSaleItemsForm() {
-    const wrap = $('saleItemsList');
-    wrap.innerHTML = state.products.map(p => `
-      <div class="sale-item-row">
-        <span>${escapeHtml(p.name)}</span>
-        <input type="number" min="0" step="1" data-saleqty="${p.id}" placeholder="0" />
-      </div>`).join('');
+  function updateSaleAmount() {
+    const select = $('f_saleProductId');
+    if (!select.value) return;
+    const selected = select.options[select.selectedIndex];
+    const price = parseFloat(selected.dataset.price) || 0;
+    if (!$('f_saleAmount').value || $('f_saleAmount').dataset.auto !== 'false') {
+      $('f_saleAmount').value = price;
+      $('f_saleAmount').dataset.auto = 'true';
+    }
+    updateSaleTotal();
+  }
+  function updateSaleTotal() {
+    const qty = parseFloat($('f_saleQty').value) || 0;
+    const amt = parseFloat($('f_saleAmount').value) || 0;
+    $('f_saleTotal').value = (qty * amt).toFixed(2);
   }
 
-  $('f_saleItemize').addEventListener('change', e => {
-    $('saleItemsWrap').hidden = !e.target.checked;
-    if (e.target.checked) renderSaleItemsForm();
+  // Wire form inputs
+  document.addEventListener('change', e => {
+    if (e.target.id === 'f_saleProductId') updateSaleAmount();
   });
-
-  // Auto-sum total when itemized values are typed
   document.addEventListener('input', e => {
-    if (e.target.dataset.saleqty && $('f_saleItemize').checked) {
-      let sum = 0;
-      document.querySelectorAll('[data-saleqty]').forEach(input => {
-        const qty = parseInt(input.value, 10) || 0;
-        const product = state.products.find(p => p.id === input.dataset.saleqty);
-        if (product) sum += qty * product.price;
-      });
-      $('f_saleTotal').value = sum || '';
+    if (e.target.id === 'f_saleQty' || e.target.id === 'f_saleAmount') {
+      if (e.target.id === 'f_saleAmount') e.target.dataset.auto = 'false';
+      updateSaleTotal();
     }
   });
 
+  // Save a sale entry
   $('saveSaleBtn').addEventListener('click', () => {
     const date = $('f_saleDate').value;
-    const total = parseFloat($('f_saleTotal').value) || 0;
-    if (!date) return toast('Please pick a date', 'error');
-    if (total <= 0) return toast('Total must be greater than zero', 'error');
+    const productId = $('f_saleProductId').value;
+    const quantity = parseFloat($('f_saleQty').value);
+    const amount = parseFloat($('f_saleAmount').value);
+    if (!date) return toast('Pick a date', 'error');
+    if (!productId) return toast('Pick a product', 'error');
+    if (!quantity || quantity <= 0) return toast('Quantity must be > 0', 'error');
+    if (!amount || amount < 0) return toast('Amount must be > 0', 'error');
 
-    const items = [];
-    if ($('f_saleItemize').checked) {
-      document.querySelectorAll('[data-saleqty]').forEach(input => {
-        const qty = parseInt(input.value, 10) || 0;
-        if (qty > 0) items.push({ productId: input.dataset.saleqty, qty });
-      });
-    }
-    const sale = {
+    const product = state.products.find(p => p.id === productId);
+    state.sales = state.sales || [];
+    state.sales.push({
       id: 's' + Date.now().toString(36),
-      date, total, items,
-      note: $('f_saleNote').value.trim(),
-    };
-    state.sales.unshift(sale);
+      date,
+      productId,
+      productName: product ? product.name : '',
+      quantity,
+      amount,
+      totalAmount: quantity * amount,
+    });
     saveData();
-    clearSaleForm();
-    renderSalesHistory();
-    toast('Sale entry saved', 'success');
+    toast('Sale recorded', 'success');
+    // Reset quantity but keep date/product for fast multi-entry
+    $('f_saleQty').value = 1;
+    $('f_saleAmount').dataset.auto = 'true';
+    updateSaleAmount();
+    renderSalesView();
   });
 
-  function clearSaleForm() {
+  $('clearSaleBtn').addEventListener('click', () => {
     $('f_saleDate').value = todayStr();
-    $('f_saleTotal').value = '';
-    $('f_saleNote').value = '';
-    $('f_saleItemize').checked = false;
-    $('saleItemsWrap').hidden = true;
-    document.querySelectorAll('[data-saleqty]').forEach(i => i.value = '');
-  }
-  $('clearSaleBtn').addEventListener('click', clearSaleForm);
+    $('f_saleQty').value = 1;
+    $('f_saleAmount').dataset.auto = 'true';
+    if ($('f_saleProductId').options.length) $('f_saleProductId').selectedIndex = 0;
+    updateSaleAmount();
+  });
 
-  function renderSalesHistory() {
+  // Tab switching
+  document.querySelectorAll('.sales-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.sales-tab').forEach(x => x.classList.remove('is-active'));
+      t.classList.add('is-active');
+      currentSalesView = t.dataset.saleview;
+      renderSalesView();
+    });
+  });
+
+  function renderSalesView() {
+    const sales = state.sales || [];
+    const now = new Date();
+    let filtered, title, dateLabel;
+
+    if (currentSalesView === 'daily') {
+      const today = todayStr();
+      filtered = sales.filter(s => s.date === today);
+      title = "Today's sales";
+      dateLabel = formatDate(today);
+    } else if (currentSalesView === 'monthly') {
+      const ym = todayStr().slice(0, 7);
+      filtered = sales.filter(s => (s.date || '').startsWith(ym));
+      title = "This month's sales";
+      dateLabel = now.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+    } else {
+      const yr = todayStr().slice(0, 4);
+      filtered = sales.filter(s => (s.date || '').startsWith(yr));
+      title = "This year's sales";
+      dateLabel = yr;
+    }
+
+    // Stats: total revenue, total items sold, unique products, # of transactions
+    const totalRevenue = filtered.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+    const totalItems = filtered.reduce((sum, s) => sum + (s.quantity || 0), 0);
+    const uniqueProducts = new Set(filtered.map(s => s.productId)).size;
+
+    $('salesStats').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-card__label">Revenue</div>
+        <div class="stat-card__value">₱${totalRevenue.toFixed(2)}</div>
+        <div class="stat-card__delta">${filtered.length} sale${filtered.length !== 1 ? 's' : ''}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__label">Items sold</div>
+        <div class="stat-card__value">${totalItems}</div>
+        <div class="stat-card__delta">${uniqueProducts} unique product${uniqueProducts !== 1 ? 's' : ''}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__label">Average per sale</div>
+        <div class="stat-card__value">₱${filtered.length ? (totalRevenue / filtered.length).toFixed(2) : '0.00'}</div>
+        <div class="stat-card__delta">${currentSalesView}</div>
+      </div>`;
+
+    $('salesViewTitle').textContent = title;
+    $('salesViewDate').textContent = dateLabel;
+
+    renderSalesHistory(filtered);
+  }
+
+  function renderSalesHistory(rows) {
     const wrap = $('salesHistory');
-    const sales = [...state.sales].sort((a, b) => b.date.localeCompare(a.date));
-    if (sales.length === 0) {
-      wrap.innerHTML = '<div class="empty-state">No sales recorded yet. Save your first day above.</div>';
-      $('salesSummary').textContent = '';
+    if (!rows || rows.length === 0) {
+      wrap.innerHTML = '<div class="empty-state">No sales recorded for this period yet.</div>';
       return;
     }
-    const totalAll = sales.reduce((s, x) => s + x.total, 0);
-    $('salesSummary').textContent = `· ${sales.length} entries · ₱${totalAll.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} total`;
-
-    wrap.innerHTML = sales.map(s => {
-      const itemsList = s.items.length
-        ? `<details>
-            <summary>${s.items.length} items · ${escapeHtml(s.note || '')}</summary>
-            <ul>${s.items.map(i => {
-              const p = state.products.find(x => x.id === i.productId);
-              return `<li>${p ? escapeHtml(p.name) : '?'} × ${i.qty}</li>`;
-            }).join('')}</ul>
-          </details>`
-        : `<span>${escapeHtml(s.note || '—')}</span>`;
-      return `
-        <div class="sales-history-row">
-          <div class="sales-history-row__date">${formatDate(s.date)}</div>
-          <div class="sales-history-row__total">₱${s.total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-          <div class="sales-history-row__items">${itemsList}</div>
-          <div>
-            <button class="btn-icon-sm danger" data-deletesale="${s.id}" title="Delete">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-            </button>
-          </div>
-        </div>`;
-    }).join('');
+    // Sort by date desc, then by id desc
+    const sorted = [...rows].sort((a, b) => {
+      if (a.date !== b.date) return b.date.localeCompare(a.date);
+      return (b.id || '').localeCompare(a.id || '');
+    });
+    wrap.innerHTML = `
+      <div style="overflow-x:auto">
+        <table class="sales-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Product</th>
+              <th class="num">Qty</th>
+              <th class="num">Amount</th>
+              <th class="num">Total</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sorted.map(s => `
+              <tr>
+                <td>${formatDate(s.date)}</td>
+                <td>${escapeHtml(s.productName || s.productId || '—')}</td>
+                <td class="num">${s.quantity}</td>
+                <td class="num">₱${(s.amount || 0).toFixed(2)}</td>
+                <td class="num"><strong>₱${(s.totalAmount || 0).toFixed(2)}</strong></td>
+                <td><button class="btn-icon-sm danger" data-delsale="${s.id}" title="Delete">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                </button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>`;
   }
 
-  function formatDate(s) {
-    try {
-      const d = new Date(s + 'T00:00:00');
-      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-    } catch { return s; }
-  }
-
+  // Delete sale
   document.body.addEventListener('click', e => {
-    const sid = e.target.closest('[data-deletesale]')?.dataset.deletesale;
-    if (sid && confirm('Delete this sales entry?')) {
-      state.sales = state.sales.filter(s => s.id !== sid);
+    const delId = e.target.closest('[data-delsale]')?.dataset.delsale;
+    if (!delId) return;
+    const s = state.sales.find(x => x.id === delId);
+    if (s && confirm(`Delete this sale (${s.productName} × ${s.quantity})?`)) {
+      state.sales = state.sales.filter(x => x.id !== delId);
       saveData();
-      renderSalesHistory();
+      renderSalesView();
       toast('Sale deleted');
     }
   });
 
-  /* =========================================================
-     INVENTORY
-  ========================================================= */
-  const LOW_STOCK_THRESHOLD = 0.2;  // 20% of last known max
-
-  function renderInventory() {
-    renderInvStats();
-    renderIngredients();
-    renderRestocks();
-    renderRecipes();
-  }
-
-  function renderInvStats() {
-    const totalValue = state.ingredients.reduce((s, i) => s + (i.stock || 0) * (i.unitCost || 0), 0);
-    const totalSpend = state.restocks.reduce((s, r) => s + (r.total || 0), 0);
-    const lowCount = state.ingredients.filter(i => (i.stock || 0) > 0 && (i.stock || 0) < 50).length;
-    const emptyCount = state.ingredients.filter(i => (i.stock || 0) <= 0).length;
-    // 7-day sales total
-    const since = new Date();
-    since.setDate(since.getDate() - 7);
-    const sinceStr = since.toISOString().slice(0, 10);
-    const recentSales = state.sales
-      .filter(s => s.date >= sinceStr)
-      .reduce((sum, s) => sum + s.total, 0);
-    $('invStats').innerHTML = `
-      <div class="stat-card">
-        <div class="stat-card__label">Stock value</div>
-        <div class="stat-card__value">₱${totalValue.toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
-        <div class="stat-card__delta">${state.ingredients.length} ingredients</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card__label">Total spent</div>
-        <div class="stat-card__value">₱${totalSpend.toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
-        <div class="stat-card__delta">${state.restocks.length} restocks</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card__label">Sales (7 days)</div>
-        <div class="stat-card__value">₱${recentSales.toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
-        <div class="stat-card__delta">${state.sales.filter(s => s.date >= sinceStr).length} entries</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card__label">Stock alerts</div>
-        <div class="stat-card__value">${lowCount + emptyCount}</div>
-        <div class="stat-card__delta ${(lowCount + emptyCount) > 0 ? 'warn' : ''}">${emptyCount} out, ${lowCount} low</div>
-      </div>`;
-  }
-
-  function renderIngredients() {
-    const wrap = $('ingredientsList');
-    if (state.ingredients.length === 0) {
-      wrap.innerHTML = '<div class="empty-state">No ingredients yet. Click "+ Add Ingredient" to start (e.g. Coffee Beans, Milk).</div>';
-      return;
-    }
-    wrap.innerHTML = `
-      <table class="ing-table">
-        <thead>
-          <tr>
-            <th>Ingredient</th>
-            <th>Unit</th>
-            <th class="num">Cost/unit</th>
-            <th class="num">Stock</th>
-            <th class="num">Stock value</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          ${state.ingredients.map(i => {
-            const stock = i.stock || 0;
-            const pillClass = stock <= 0 ? 'empty' : stock < 50 ? 'low' : 'ok';
-            const pillText = stock <= 0 ? 'Out' : stock < 50 ? 'Low' : 'OK';
-            const value = stock * (i.unitCost || 0);
-            return `
-              <tr ${stock <= 0 ? '' : (stock < 50 ? 'class="low-stock"' : '')}>
-                <td><strong>${escapeHtml(i.name)}</strong></td>
-                <td>${escapeHtml(i.unit)}</td>
-                <td class="num">₱${(i.unitCost || 0).toFixed(2)}</td>
-                <td class="num">${stock.toLocaleString()} <span class="stock-pill ${pillClass}">${pillText}</span></td>
-                <td class="num">₱${value.toFixed(2)}</td>
-                <td class="prod-actions">
-                  <button class="btn-icon-sm" data-editing="${i.id}" title="Edit">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
-                  </button>
-                  <button class="btn-icon-sm danger" data-deleting="${i.id}" title="Delete">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-                  </button>
-                </td>
-              </tr>`;
-          }).join('')}
-        </tbody>
-      </table>`;
-  }
-
-  $('addIngredientBtn').addEventListener('click', () => openIngredientModal(null));
-
-  function openIngredientModal(ing) {
-    const form = $('ingredientForm');
-    $('ingredientModalTitle').textContent = ing ? 'Edit Ingredient' : 'Add Ingredient';
-    form.elements.id.value = ing?.id || '';
-    form.elements.name.value = ing?.name || '';
-    form.elements.unit.value = ing?.unit || 'g';
-    form.elements.unitCost.value = ing?.unitCost ?? '';
-    form.elements.stock.value = ing?.stock ?? 0;
-    $('ingredientModal').classList.add('is-open');
-  }
-
-  $('ingredientForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const id = fd.get('id') || ('i' + Date.now().toString(36));
-    const data = {
-      id,
-      name: fd.get('name').trim(),
-      unit: fd.get('unit'),
-      unitCost: parseFloat(fd.get('unitCost')) || 0,
-      stock: parseFloat(fd.get('stock')) || 0,
-    };
-    const idx = state.ingredients.findIndex(i => i.id === id);
-    if (idx >= 0) state.ingredients[idx] = data;
-    else state.ingredients.push(data);
-    saveData();
-    renderInventory();
-    $('ingredientModal').classList.remove('is-open');
-    toast('Ingredient saved', 'success');
-  });
-
-  document.body.addEventListener('click', e => {
-    const editId = e.target.closest('[data-editing]')?.dataset.editing;
-    if (editId) openIngredientModal(state.ingredients.find(i => i.id === editId));
-    const delId = e.target.closest('[data-deleting]')?.dataset.deleting;
-    if (delId) {
-      if (state.ingredients.find(i => i.id === delId)) {
-        if (confirm('Delete this ingredient? (Recipes referencing it will keep the ID but show "?".)')) {
-          state.ingredients = state.ingredients.filter(i => i.id !== delId);
-          saveData();
-          renderInventory();
-          toast('Ingredient deleted');
-        }
-      }
-    }
-  });
-
-  /* ---- RESTOCKS ---- */
-  function renderRestocks() {
-    const wrap = $('restocksList');
-    const restocks = [...state.restocks].sort((a, b) => b.date.localeCompare(a.date));
-    if (restocks.length === 0) {
-      wrap.innerHTML = '<div class="empty-state">No restocks logged. Add one to start tracking expenses.</div>';
-      return;
-    }
-    wrap.innerHTML = restocks.map(r => {
-      const itemsTxt = r.items.map(it => {
-        const ing = state.ingredients.find(x => x.id === it.ingredientId);
-        return `${ing ? escapeHtml(ing.name) : '?'} +${it.amount}${ing ? ing.unit : ''}`;
-      }).join(' · ');
-      return `
-        <div class="restock-card">
-          <div class="restock-card__date">${formatDate(r.date)}</div>
-          <div class="restock-card__items">${itemsTxt}${r.note ? ` <span style="color:var(--ink-soft)">· ${escapeHtml(r.note)}</span>` : ''}</div>
-          <div class="restock-card__total">₱${(r.total || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-          <button class="btn-icon-sm danger" data-deleterestock="${r.id}" title="Delete">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-          </button>
-        </div>`;
-    }).join('');
-  }
-
-  function buildRestockItemRow(item) {
-    const opts = state.ingredients.map(i =>
-      `<option value="${i.id}" ${item?.ingredientId === i.id ? 'selected' : ''}>${escapeHtml(i.name)} (${i.unit})</option>`
-    ).join('');
-    const row = document.createElement('div');
-    row.className = 'restock-item-row';
-    row.innerHTML = `
-      <select class="restock-ing" required>
-        <option value="">— select ingredient —</option>
-        ${opts}
-      </select>
-      <input type="number" class="restock-amt" placeholder="Amount" min="0" step="any" value="${item?.amount ?? ''}" required />
-      <input type="number" class="restock-cost" placeholder="Cost (₱)" min="0" step="any" value="${item?.cost ?? ''}" required />
-      <button type="button" class="remove-row" title="Remove">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>`;
-    row.querySelector('.remove-row').addEventListener('click', () => {
-      row.remove();
-      recalcRestockTotal();
-    });
-    row.querySelectorAll('input').forEach(inp => inp.addEventListener('input', recalcRestockTotal));
-    return row;
-  }
-
-  function recalcRestockTotal() {
-    let total = 0;
-    document.querySelectorAll('#restockItems .restock-item-row').forEach(row => {
-      total += parseFloat(row.querySelector('.restock-cost').value) || 0;
-    });
-    $('restockTotal').textContent = '₱' + total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-  }
-
-  $('addRestockBtn').addEventListener('click', () => {
-    if (state.ingredients.length === 0) {
-      return toast('Add at least one ingredient first', 'error');
-    }
-    $('restockForm').reset();
-    $('restockForm').elements.date.value = todayStr();
-    $('restockItems').innerHTML = '';
-    $('restockItems').appendChild(buildRestockItemRow());
-    recalcRestockTotal();
-    $('restockModal').classList.add('is-open');
-  });
-
-  $('addRestockItemBtn').addEventListener('click', () => {
-    $('restockItems').appendChild(buildRestockItemRow());
-    recalcRestockTotal();
-  });
-
-  $('restockForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const items = [];
-    let total = 0;
-    document.querySelectorAll('#restockItems .restock-item-row').forEach(row => {
-      const ingredientId = row.querySelector('.restock-ing').value;
-      const amount = parseFloat(row.querySelector('.restock-amt').value) || 0;
-      const cost = parseFloat(row.querySelector('.restock-cost').value) || 0;
-      if (ingredientId && amount > 0) {
-        items.push({ ingredientId, amount, cost });
-        total += cost;
-        // Increment ingredient stock
-        const ing = state.ingredients.find(i => i.id === ingredientId);
-        if (ing) ing.stock = (ing.stock || 0) + amount;
-      }
-    });
-    if (items.length === 0) return toast('Add at least one valid item', 'error');
-
-    state.restocks.unshift({
-      id: 'r' + Date.now().toString(36),
-      date: fd.get('date'),
-      note: (fd.get('note') || '').toString().trim(),
-      items, total,
-    });
-    saveData();
-    renderInventory();
-    $('restockModal').classList.remove('is-open');
-    toast(`Restock saved — ₱${total.toFixed(2)}`, 'success');
-  });
-
-  document.body.addEventListener('click', e => {
-    const id = e.target.closest('[data-deleterestock]')?.dataset.deleterestock;
-    if (id && confirm('Delete this restock? Stock levels will NOT be reversed automatically.')) {
-      state.restocks = state.restocks.filter(r => r.id !== id);
-      saveData();
-      renderInventory();
-      toast('Restock deleted');
-    }
-  });
-
-  /* ---- RECIPES ---- */
-  function renderRecipes() {
-    const wrap = $('recipesList');
-    if (state.products.length === 0) {
-      wrap.innerHTML = '<div class="empty-state">No products yet. Add products first in the Products tab.</div>';
-      return;
-    }
-    wrap.innerHTML = state.products.map(p => {
-      const recipe = state.recipes[p.id] || [];
-      const cost = recipeCost(recipe);
-      const profit = (p.price || 0) - cost;
-      const marginPct = p.price > 0 ? (profit / p.price) * 100 : 0;
-      let marginClass = 'none', marginTxt = '—';
-      if (recipe.length > 0 && cost > 0) {
-        marginClass = profit > 0 ? 'good' : 'bad';
-        marginTxt = `${marginPct.toFixed(0)}% margin`;
-      }
-      const ingCount = recipe.length;
-      return `
-        <div class="recipe-row">
-          <div>
-            <div class="recipe-row__name">${escapeHtml(p.name)}</div>
-            <div class="recipe-row__meta">${ingCount ? `${ingCount} ingredient${ingCount > 1 ? 's' : ''}` : 'No recipe yet'} · Sells ₱${p.price}</div>
-          </div>
-          <div class="recipe-row__cost">
-            ₱${cost.toFixed(2)}
-            <small>cost to make</small>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span class="recipe-row__margin ${marginClass}">${marginTxt}</span>
-            <button class="btn btn--ghost btn--sm" data-recipe="${p.id}">${ingCount ? 'Edit' : 'Build'}</button>
-          </div>
-        </div>`;
-    }).join('');
-  }
-
-  function recipeCost(recipe) {
-    return recipe.reduce((sum, item) => {
-      const ing = state.ingredients.find(i => i.id === item.ingredientId);
-      return sum + (ing ? (ing.unitCost || 0) * (item.amount || 0) : 0);
-    }, 0);
-  }
-
-  function buildRecipeItemRow(item) {
-    const opts = state.ingredients.map(i =>
-      `<option value="${i.id}" ${item?.ingredientId === i.id ? 'selected' : ''}>${escapeHtml(i.name)} (${i.unit})</option>`
-    ).join('');
-    const row = document.createElement('div');
-    row.className = 'recipe-item-row';
-    row.innerHTML = `
-      <select class="recipe-ing" required>
-        <option value="">— select ingredient —</option>
-        ${opts}
-      </select>
-      <input type="number" class="recipe-amt" placeholder="Amount per serving" min="0" step="any" value="${item?.amount ?? ''}" required />
-      <button type="button" class="remove-row" title="Remove">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>`;
-    row.querySelector('.remove-row').addEventListener('click', () => {
-      row.remove();
-      recalcRecipeCost();
-    });
-    row.querySelectorAll('select, input').forEach(el => el.addEventListener('input', recalcRecipeCost));
-    row.querySelector('.recipe-ing').addEventListener('change', recalcRecipeCost);
-    return row;
-  }
-
-  function recalcRecipeCost() {
-    const productId = $('recipeForm').elements.productId.value;
-    const product = state.products.find(p => p.id === productId);
-    let cost = 0;
-    document.querySelectorAll('#recipeItems .recipe-item-row').forEach(row => {
-      const ingId = row.querySelector('.recipe-ing').value;
-      const amt = parseFloat(row.querySelector('.recipe-amt').value) || 0;
-      const ing = state.ingredients.find(i => i.id === ingId);
-      if (ing && amt > 0) cost += (ing.unitCost || 0) * amt;
-    });
-    const sellPrice = product?.price || 0;
-    const profit = sellPrice - cost;
-    $('recipeSellPrice').textContent = '₱' + sellPrice;
-    $('recipeCost').textContent = '₱' + cost.toFixed(2);
-    $('recipeProfit').textContent = (profit >= 0 ? '+' : '') + '₱' + profit.toFixed(2);
-    $('recipeProfit').style.color = profit >= 0 ? 'var(--accent)' : 'var(--danger)';
-  }
-
-  document.body.addEventListener('click', e => {
-    const productId = e.target.closest('[data-recipe]')?.dataset.recipe;
-    if (!productId) return;
-    if (state.ingredients.length === 0) {
-      return toast('Add ingredients first', 'error');
-    }
-    const product = state.products.find(p => p.id === productId);
-    const recipe = state.recipes[productId] || [];
-    $('recipeModalTitle').textContent = product.name + ' — Recipe';
-    $('recipeModalSub').textContent = `Sells for ₱${product.price}. Add the ingredients used in ONE serving.`;
-    $('recipeForm').elements.productId.value = productId;
-    const itemsWrap = $('recipeItems');
-    itemsWrap.innerHTML = '';
-    if (recipe.length === 0) {
-      itemsWrap.appendChild(buildRecipeItemRow());
-    } else {
-      recipe.forEach(it => itemsWrap.appendChild(buildRecipeItemRow(it)));
-    }
-    recalcRecipeCost();
-    $('recipeModal').classList.add('is-open');
-  });
-
-  $('addRecipeItemBtn').addEventListener('click', () => {
-    $('recipeItems').appendChild(buildRecipeItemRow());
-    recalcRecipeCost();
-  });
-
-  $('recipeForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const productId = e.target.elements.productId.value;
-    const items = [];
-    document.querySelectorAll('#recipeItems .recipe-item-row').forEach(row => {
-      const ingredientId = row.querySelector('.recipe-ing').value;
-      const amount = parseFloat(row.querySelector('.recipe-amt').value) || 0;
-      if (ingredientId && amount > 0) items.push({ ingredientId, amount });
-    });
-    if (items.length === 0) {
-      delete state.recipes[productId];
-    } else {
-      state.recipes[productId] = items;
-    }
-    saveData();
-    renderInventory();
-    $('recipeModal').classList.remove('is-open');
-    toast('Recipe saved', 'success');
-  });
 
   /* =========================================================
      INITIAL SHEET SYNC ON PAGE LOAD
@@ -3526,9 +3155,6 @@ function safeParse(s, fallback) {
         orderLinks: { ...state.orderLinks, ...(r.orderLinks || {}) },
         todaysPour: { ...state.todaysPour, ...(r.todaysPour || {}) },
         sales: r.sales || state.sales,
-        ingredients: r.ingredients || state.ingredients,
-        restocks: r.restocks || state.restocks,
-        recipes: r.recipes || state.recipes,
         employees: r.employees || state.employees,
         admins: (r.admins && r.admins.length) ? r.admins : state.admins,
         team: (r.team && r.team.length) ? r.team : state.team,

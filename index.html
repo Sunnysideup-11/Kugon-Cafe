@@ -89,7 +89,8 @@
             <div class="cup-card" data-sync-block>
               <div class="cup-card__tag">Today's Pour</div>
               <div class="cup-card__art">
-                <svg viewBox="0 0 240 280" width="100%" height="100%">
+                <img id="pourImage" class="cup-card__photo" alt="" hidden />
+                <svg id="pourSvg" viewBox="0 0 240 280" width="100%" height="100%">
                   <defs>
                     <linearGradient id="cream" x1="0" x2="0" y1="0" y2="1">
                       <stop offset="0%" stop-color="#f4e4cb"/>
@@ -355,9 +356,9 @@
       <div>
         <h5>Order via</h5>
         <ul>
-          <li><a href="#" data-open-order>Foodpanda</a></li>
-          <li><a href="#" data-open-order>Grab</a></li>
-          <li><a href="#" data-open-order>Facebook</a></li>
+          <li><a href="https://www.foodpanda.ph/" target="_blank" rel="noopener" class="footer-order-link footer-order-link--foodpanda">Foodpanda</a></li>
+          <li><a href="https://food.grab.com/ph/en/" target="_blank" rel="noopener" class="footer-order-link footer-order-link--grab">Grab</a></li>
+          <li><a href="https://www.facebook.com/profile.php?id=61590405332745" target="_blank" rel="noopener" class="footer-order-link footer-order-link--facebook">Facebook</a></li>
         </ul>
       </div>
     </div>

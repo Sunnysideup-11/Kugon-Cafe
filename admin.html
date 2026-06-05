@@ -1215,8 +1215,8 @@
               <div style="display:flex;align-items:center;gap:10px">
                 <span style="font-size:1.2rem">ℹ️</span>
                 <div>
-                  <strong style="font-size:.92rem">Auto-push on main saves</strong>
-                  <div class="field__hint" style="margin:2px 0 0">Clicking <strong>Save Changes</strong>, <strong>Save</strong> (Today's Pour), or <strong>+ Add Sale</strong> automatically pushes to the Google Sheet. For products/team/employees, use the <strong>Push to Sheet</strong> button above when you're ready to publish.</div>
+                  <strong style="font-size:.92rem">Click <em>Save Changes</em> to publish</strong>
+                  <div class="field__hint" style="margin:2px 0 0">All other Save buttons save locally only. Clicking the main <strong>Save Changes</strong> button (bottom-right) uploads any pending images to Drive and pushes everything to the Sheet. Use <strong>Push to Sheet</strong> above as a manual override.</div>
                 </div>
               </div>
             </div>
@@ -1807,7 +1807,7 @@
   });
 
   /* ---------- SAVE ---------- */
-  $('saveBtn').addEventListener('click', () => {
+  $('saveBtn').addEventListener('click', async () => {
     // Pull form values into state
     state.contact = {
       ...state.contact,
@@ -1826,7 +1826,60 @@
       grab: $('f_grab').value,
       facebook: $('f_facebook').value,
     };
-    saveData({ push: true });
+
+    // Loading state on the button
+    const btn = $('saveBtn');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.style.opacity = '.65';
+    btn.style.cursor = 'wait';
+    btn.textContent = 'Saving…';
+
+    // Top loading banner
+    makeSyncBanner('Saving changes…');
+
+    try {
+      // Step 1: Upload any pending base64 images to Drive
+      const banner = document.getElementById('syncBanner');
+      const result = await uploadAllPendingImages((done, total) => {
+        if (total > 0 && banner) {
+          banner.innerHTML = `<span class="sync-banner__spinner"></span> <span>Uploading images to Drive (${done}/${total})…</span>`;
+        }
+      });
+      if (result.uploaded > 0) {
+        console.log(`Uploaded ${result.uploaded} image(s) to Drive`);
+      }
+      if (result.failed > 0) {
+        console.warn(`${result.failed} image(s) failed to upload to Drive — kept as base64`);
+      }
+
+      // Step 2: Save locally
+      if (banner) banner.innerHTML = '<span class="sync-banner__spinner"></span> <span>Saving locally…</span>';
+      localStorage.setItem('kugon_data', JSON.stringify(state));
+      dirty = false;
+      updateStatus('saved');
+      refreshJsonPreview();
+
+      // Step 3: Push to sheet
+      if (banner) banner.innerHTML = '<span class="sync-banner__spinner"></span> <span>Pushing to Google Sheet…</span>';
+      await pushToSheets(false);
+
+      // Done
+      let msg = '✓ Saved & pushed';
+      if (result.uploaded > 0) msg += ` · ${result.uploaded} image${result.uploaded > 1 ? 's' : ''} uploaded`;
+      if (result.failed > 0)   msg += ` · ${result.failed} upload${result.failed > 1 ? 's' : ''} failed`;
+      finishSyncBanner(result.failed > 0 ? 'err' : 'ok', msg);
+      toast(msg, result.failed > 0 ? 'error' : 'success');
+    } catch (err) {
+      console.error('Save flow failed:', err);
+      finishSyncBanner('err', '⚠ Save failed: ' + err.message);
+      toast('Save failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.style.opacity = '';
+      btn.style.cursor = '';
+      btn.textContent = originalText;
+    }
   });
 
   /* ---------- RESET ---------- */
@@ -1945,6 +1998,81 @@
     return r.url;
   }
 
+  // Helper: is this string a base64 image data URL (vs a Drive URL or path)?
+  function isBase64Image(s) {
+    return typeof s === 'string' && s.startsWith('data:image/');
+  }
+
+  // Walk state and replace any base64 images with Drive URLs.
+  // Returns the count of images uploaded. Mutates state in place.
+  // onProgress(done, total) is called between uploads so the UI can update.
+  async function uploadAllPendingImages(onProgress) {
+    // Collect every base64 image we need to upload, with a setter callback
+    const jobs = [];
+    (state.products || []).forEach((p, i) => {
+      if (isBase64Image(p.image)) {
+        jobs.push({
+          base64: p.image,
+          filename: `product_${p.id || i}_${Date.now()}.jpg`,
+          set: url => { state.products[i].image = url; },
+        });
+      }
+    });
+    (state.team || []).forEach((t, i) => {
+      if (isBase64Image(t.image)) {
+        jobs.push({
+          base64: t.image,
+          filename: `team_${t.id || i}_${Date.now()}.jpg`,
+          set: url => { state.team[i].image = url; },
+        });
+      }
+    });
+    (state.admins || []).forEach((a, i) => {
+      if (isBase64Image(a.image)) {
+        jobs.push({
+          base64: a.image,
+          filename: `admin_${a.username || i}_${Date.now()}.jpg`,
+          set: url => { state.admins[i].image = url; },
+        });
+      }
+    });
+    (state.employees || []).forEach((e, i) => {
+      if (isBase64Image(e.image)) {
+        jobs.push({
+          base64: e.image,
+          filename: `employee_${e.username || i}_${Date.now()}.jpg`,
+          set: url => { state.employees[i].image = url; },
+        });
+      }
+    });
+    if (state.todaysPour && isBase64Image(state.todaysPour.image)) {
+      jobs.push({
+        base64: state.todaysPour.image,
+        filename: `pour_${Date.now()}.jpg`,
+        set: url => { state.todaysPour.image = url; },
+      });
+    }
+
+    const total = jobs.length;
+    if (total === 0) return { uploaded: 0, failed: 0 };
+
+    let uploaded = 0, failed = 0;
+    for (let i = 0; i < jobs.length; i++) {
+      const job = jobs[i];
+      if (onProgress) onProgress(i, total);
+      try {
+        const url = await uploadToDrive(job.base64, job.filename, 'image/jpeg');
+        job.set(url);
+        uploaded++;
+      } catch (err) {
+        console.warn('Upload failed for', job.filename, err);
+        failed++;
+      }
+    }
+    if (onProgress) onProgress(total, total);
+    return { uploaded, failed };
+  }
+
   function resizeImageFile(file, maxDim, quality) {
     return new Promise((resolve, reject) => {
       if (!file || !file.type.startsWith('image/')) return reject(new Error('Not an image file'));
@@ -2005,19 +2133,9 @@
     async function handleFile(file) {
       try {
         const dataUrl = await resizeImageFile(file, cfg.maxDim || 600, cfg.quality || 0.82);
-        // Show base64 preview immediately so user gets instant feedback
+        // Show base64 preview locally. Actual Drive upload happens on Save Changes.
         show(dataUrl);
-        toast('Uploading to Drive…');
-        // Upload to Drive in background, then swap the source to the Drive URL
-        try {
-          const driveUrl = await uploadToDrive(dataUrl, file.name || 'image.jpg', file.type || 'image/jpeg');
-          show(driveUrl);
-          toast('✓ Uploaded to Drive', 'success');
-        } catch (uploadErr) {
-          // Upload failed — keep the base64 fallback that's already showing
-          console.warn('Drive upload failed:', uploadErr);
-          toast('Drive upload failed, keeping local copy: ' + uploadErr.message, 'error');
-        }
+        toast('Image attached — click Save Changes to upload to Drive', 'success');
       } catch (err) {
         toast(err.message, 'error');
       }
@@ -2615,8 +2733,8 @@ function uploadImage(data) {
       price: $('f_pourPrice').value.trim(),
       image: currentPourImage || '',
     };
-    saveData({ push: true });
-    toast("Today's Pour saved & pushed", 'success');
+    saveData();
+    toast("Today's Pour saved locally — click Save Changes to publish", 'success');
   });
 
   /* =========================================================
@@ -3117,8 +3235,8 @@ function uploadImage(data) {
       amount,
       totalAmount: quantity * amount,
     });
-    saveData({ push: true });   // pushes to sheet too — see saveData changes below
-    toast('Sale recorded', 'success');
+    saveData();   // local only — Save Changes will push
+    toast('Sale recorded locally', 'success');
     // Reset form for next entry, default date back to today
     $('f_saleDate').value = todayStr();
     $('f_saleProductSearch').value = '';
@@ -3248,7 +3366,7 @@ function uploadImage(data) {
     const s = state.sales.find(x => x.id === delId);
     if (s && confirm(`Delete this sale (${s.productName} × ${s.quantity})?`)) {
       state.sales = state.sales.filter(x => x.id !== delId);
-      saveData({ push: true });
+      saveData();
       renderSalesView();
       toast('Sale deleted');
     }

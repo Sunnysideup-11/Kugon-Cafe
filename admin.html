@@ -399,6 +399,54 @@
       border-radius: var(--radius-lg);
       padding: 20px;
     }
+    .product-search-wrap {
+      position: relative;
+    }
+    .product-search-wrap input {
+      width: 100%;
+      padding: 12px 40px 12px 42px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: var(--paper);
+      font-size: .95rem;
+      color: var(--ink);
+      font-family: var(--font-body);
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .product-search-wrap input::placeholder {
+      color: var(--ink-soft);
+      font-style: italic;
+    }
+    .product-search-wrap input:hover {
+      border-color: var(--accent);
+    }
+    .product-search-wrap input:focus {
+      outline: 0;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+      background: var(--bg);
+    }
+    .product-search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--accent);
+      pointer-events: none;
+    }
+    .product-search-chevron {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--ink-soft);
+      pointer-events: none;
+      transition: transform .2s, color .2s;
+    }
+    .product-search-wrap input:focus ~ .product-search-chevron {
+      color: var(--accent);
+      transform: translateY(-50%) rotate(180deg);
+    }
     .sales-summary-tabs {
       display: inline-flex;
       gap: 4px;
@@ -1058,9 +1106,14 @@
                 </div>
                 <div class="field">
                   <label>Product</label>
-                  <input type="text" id="f_saleProductSearch" list="saleProductsList" placeholder="Type to search products…" autocomplete="off" />
+                  <div class="product-search-wrap">
+                    <svg class="product-search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                    <input type="text" id="f_saleProductSearch" list="saleProductsList" placeholder="Type or tap to search products…" autocomplete="off" />
+                    <svg class="product-search-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                  </div>
                   <datalist id="saleProductsList"></datalist>
                   <input type="hidden" id="f_saleProductId" />
+                  <div class="field__hint" style="margin-top:6px">💡 Start typing a product name (e.g. "esp" for Espresso) — pick from the dropdown.</div>
                 </div>
               </div>
               <div class="field-row">
@@ -1831,6 +1884,17 @@
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
+  // Format YYYY-MM-DD → "Jun 5, 2026"
+  function formatDate(ymd) {
+    if (!ymd) return '';
+    const s = String(ymd).slice(0, 10);
+    const parts = s.split('-');
+    if (parts.length !== 3) return s;
+    const d = new Date(parts[0], parseInt(parts[1], 10) - 1, parts[2]);
+    if (isNaN(d.getTime())) return s;
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
   document.body.addEventListener('click', e => {
     const editId = e.target.closest('[data-edit]')?.dataset.edit;
     if (editId) openProductModal(state.products.find(p => p.id === editId));
@@ -1867,6 +1931,18 @@
     if (m) return `https://lh3.googleusercontent.com/d/${m[1]}=w1200`;
     // Already a direct URL, base64, or relative path — return unchanged
     return url;
+  }
+
+  // Upload a base64 image to the Google Drive folder via Apps Script,
+  // returns the lh3 direct-image URL.
+  async function uploadToDrive(base64DataUrl, filename, mimeType) {
+    const r = await callSheets('uploadImage', {
+      base64: base64DataUrl,
+      filename: filename || ('image_' + Date.now() + '.jpg'),
+      mimeType: mimeType || 'image/jpeg',
+    });
+    if (!r.ok || !r.url) throw new Error(r.error || 'Upload returned no URL');
+    return r.url;
   }
 
   function resizeImageFile(file, maxDim, quality) {
@@ -1929,8 +2005,19 @@
     async function handleFile(file) {
       try {
         const dataUrl = await resizeImageFile(file, cfg.maxDim || 600, cfg.quality || 0.82);
+        // Show base64 preview immediately so user gets instant feedback
         show(dataUrl);
-        toast('Image ready', 'success');
+        toast('Uploading to Drive…');
+        // Upload to Drive in background, then swap the source to the Drive URL
+        try {
+          const driveUrl = await uploadToDrive(dataUrl, file.name || 'image.jpg', file.type || 'image/jpeg');
+          show(driveUrl);
+          toast('✓ Uploaded to Drive', 'success');
+        } catch (uploadErr) {
+          // Upload failed — keep the base64 fallback that's already showing
+          console.warn('Drive upload failed:', uploadErr);
+          toast('Drive upload failed, keeping local copy: ' + uploadErr.message, 'error');
+        }
       } catch (err) {
         toast(err.message, 'error');
       }
@@ -2145,6 +2232,7 @@ function route(e, method) {
     else if (action === 'getAll')  result = getAll();
     else if (action === 'push')    result = pushAll(body && body.data);
     else if (action === 'init')    result = initSchema();
+    else if (action === 'uploadImage') result = uploadImage(body && body.data);
     else                           result = { ok: false, error: 'Unknown action: ' + action };
     return json(result);
   } catch (err) {
@@ -2305,6 +2393,37 @@ function pushAll(data) {
 
 function safeParse(s, fallback) {
   try { return JSON.parse(s); } catch { return fallback; }
+}
+
+// ============================================================
+// IMAGE UPLOAD TO GOOGLE DRIVE
+// Saves images to the Kugon Cafe Images folder, returns a public URL.
+// ============================================================
+const DRIVE_FOLDER_ID = '1htDc8Kw3AMDHsoVKMpvpbCCCusv6aqJb';
+
+function uploadImage(data) {
+  if (!data || !data.base64) return { ok: false, error: 'Missing image data' };
+  try {
+    const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+    const base64 = data.base64.indexOf(',') >= 0 ? data.base64.split(',')[1] : data.base64;
+    const decoded = Utilities.base64Decode(base64);
+    const mime = data.mimeType || 'image/jpeg';
+    const ext = mime === 'image/png' ? 'png' : 'jpg';
+    const fname = (data.filename || ('image_' + Date.now() + '.' + ext))
+      .replace(/[^a-zA-Z0-9._-]/g, '_');
+    const blob = Utilities.newBlob(decoded, mime, fname);
+    const file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    const fileId = file.getId();
+    return {
+      ok: true,
+      url: 'https://lh3.googleusercontent.com/d/' + fileId + '=w1200',
+      fileId: fileId,
+      filename: fname,
+    };
+  } catch (err) {
+    return { ok: false, error: 'Upload failed: ' + (err.message || err) };
+  }
 }
 `;
 

@@ -1058,7 +1058,9 @@
                 </div>
                 <div class="field">
                   <label>Product</label>
-                  <select id="f_saleProductId"></select>
+                  <input type="text" id="f_saleProductSearch" list="saleProductsList" placeholder="Type to search products…" autocomplete="off" />
+                  <datalist id="saleProductsList"></datalist>
+                  <input type="hidden" id="f_saleProductId" />
                 </div>
               </div>
               <div class="field-row">
@@ -1160,8 +1162,8 @@
               <div style="display:flex;align-items:center;gap:10px">
                 <span style="font-size:1.2rem">ℹ️</span>
                 <div>
-                  <strong style="font-size:.92rem">Manual push only.</strong>
-                  <div class="field__hint" style="margin:2px 0 0">Local changes save instantly to your browser. Click <strong>Push to Sheet</strong> when you want to publish them to the website.</div>
+                  <strong style="font-size:.92rem">Auto-push on main saves</strong>
+                  <div class="field__hint" style="margin:2px 0 0">Clicking <strong>Save Changes</strong>, <strong>Save</strong> (Today's Pour), or <strong>+ Add Sale</strong> automatically pushes to the Google Sheet. For products/team/employees, use the <strong>Push to Sheet</strong> button above when you're ready to publish.</div>
                 </div>
               </div>
             </div>
@@ -1494,16 +1496,25 @@
     } catch { return JSON.parse(JSON.stringify(DEFAULT_DATA)); }
   }
 
-  function saveData(showToast) {
-    if (showToast === undefined) showToast = true;
+  function saveData(opts) {
+    opts = (typeof opts === 'object' && opts !== null) ? opts : (opts === false ? { showToast: false } : {});
+    const showToast = opts.showToast !== false;
+    const shouldPush = opts.push === true;
     localStorage.setItem('kugon_data', JSON.stringify(state));
     dirty = false;
     updateStatus('saved');
-    if (showToast) toast('Saved locally — click "Push to Sheet" when ready to publish', 'success');
     refreshJsonPreview();
-    // NOTE: We do NOT auto-push to sheets here. Pushing only happens on
-    // explicit "Push to Sheet" button click. This prevents the runaway
-    // push-on-every-save bug.
+    if (shouldPush) {
+      // Explicit push requested (e.g. from Save Changes button)
+      pushToSheets(false).then(() => {
+        if (showToast) toast('Saved & pushed to sheet ✓', 'success');
+      }).catch(err => {
+        if (showToast) toast('Saved locally — push failed: ' + err.message, 'error');
+        console.warn('Push failed:', err);
+      });
+    } else {
+      if (showToast) toast('Saved locally', 'success');
+    }
   }
 
   function markDirty() {
@@ -1594,17 +1605,19 @@
     document.getElementById('loginScreen').hidden = true;
     document.getElementById('adminScreen').hidden = false;
     applyRole(session);
-    populateForms();
-    renderCategoryPills();
-    renderProductList();
-    renderTeam();
-    renderEmployees();
-    renderSales();
-    renderProfile();
-    renderTodaysPour();
-    refreshJsonPreview();
-    injectAppsScriptCode();
-    refreshSheetsStatus();
+    // Each render wrapped so one failure doesn't break the others
+    const safe = (label, fn) => { try { fn(); } catch (e) { console.error('Render ' + label + ' failed:', e); } };
+    safe('populateForms', populateForms);
+    safe('categories', renderCategoryPills);
+    safe('products', renderProductList);
+    safe('team', renderTeam);
+    safe('employees', renderEmployees);
+    safe('sales', renderSales);
+    safe('profile', renderProfile);
+    safe('todaysPour', renderTodaysPour);
+    safe('jsonPreview', refreshJsonPreview);
+    safe('appsScript', injectAppsScriptCode);
+    safe('sheetsStatus', refreshSheetsStatus);
   }
 
   /* Login submit */
@@ -1760,7 +1773,7 @@
       grab: $('f_grab').value,
       facebook: $('f_facebook').value,
     };
-    saveData();
+    saveData({ push: true });
   });
 
   /* ---------- RESET ---------- */
@@ -2483,8 +2496,8 @@ function safeParse(s, fallback) {
       price: $('f_pourPrice').value.trim(),
       image: currentPourImage || '',
     };
-    saveData();
-    toast("Today's Pour saved locally — Push to Sheet when ready", 'success');
+    saveData({ push: true });
+    toast("Today's Pour saved & pushed", 'success');
   });
 
   /* =========================================================
@@ -2609,7 +2622,8 @@ function safeParse(s, fallback) {
     return emps.filter(e => (e.createdAt || '').startsWith(ym)).length;
   }
   function initials(name) {
-    return name.split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase() || '?';
+    if (!name || typeof name !== 'string') return '?';
+    return name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase() || '?';
   }
 
   $('addEmpBtn').addEventListener('click', () => openEmployeeModal(null));
@@ -2898,28 +2912,53 @@ function safeParse(s, fallback) {
   let currentSalesView = 'daily';  // 'daily' | 'monthly' | 'yearly'
 
   function renderSales() {
-    if (!$('f_saleDate').value) $('f_saleDate').value = todayStr();
-    // Product dropdown
-    const select = $('f_saleProductId');
-    select.innerHTML = state.products.map(p =>
-      `<option value="${escapeHtml(p.id)}" data-price="${p.price}">${escapeHtml(p.name)} — ₱${p.price}</option>`
-    ).join('');
-    // Auto-fill amount from selected product's price
-    updateSaleAmount();
+    // Always reset date to today on tab open. User can change it before saving.
+    $('f_saleDate').value = todayStr();
+
+    // Populate datalist with all products (typeahead works automatically)
+    const list = $('saleProductsList');
+    const products = state.products || [];
+    list.innerHTML = products.map(p => {
+      const label = `${p.name} — ₱${p.price}`;
+      // The "value" of a datalist option is what the user picks; we use the product name as the value
+      // and store id+price as data attributes so we can resolve back when they pick
+      return `<option value="${escapeHtml(label)}" data-id="${escapeHtml(p.id)}" data-price="${p.price}"></option>`;
+    }).join('');
+
+    // Clear current selection
+    $('f_saleProductSearch').value = '';
+    $('f_saleProductId').value = '';
+    $('f_saleAmount').value = '';
+    $('f_saleAmount').dataset.auto = 'true';
+    $('f_saleQty').value = 1;
+    updateSaleTotal();
+
     renderSalesView();
   }
 
-  function updateSaleAmount() {
-    const select = $('f_saleProductId');
-    if (!select.value) return;
-    const selected = select.options[select.selectedIndex];
-    const price = parseFloat(selected.dataset.price) || 0;
-    if (!$('f_saleAmount').value || $('f_saleAmount').dataset.auto !== 'false') {
-      $('f_saleAmount').value = price;
-      $('f_saleAmount').dataset.auto = 'true';
+  // When user picks/types a product in the search input
+  function handleProductSearchChange() {
+    const typed = $('f_saleProductSearch').value;
+    // Try to find a matching product from the datalist
+    const options = $('saleProductsList').querySelectorAll('option');
+    let matched = null;
+    for (const opt of options) {
+      if (opt.value === typed) { matched = opt; break; }
     }
-    updateSaleTotal();
+    // If exact match (user picked from dropdown), set the hidden id + auto-fill amount
+    if (matched) {
+      $('f_saleProductId').value = matched.dataset.id;
+      const price = parseFloat(matched.dataset.price) || 0;
+      if ($('f_saleAmount').dataset.auto !== 'false') {
+        $('f_saleAmount').value = price;
+      }
+      updateSaleTotal();
+    } else {
+      // Partial typing — clear the hidden id (will validate on save)
+      $('f_saleProductId').value = '';
+    }
   }
+
   function updateSaleTotal() {
     const qty = parseFloat($('f_saleQty').value) || 0;
     const amt = parseFloat($('f_saleAmount').value) || 0;
@@ -2927,12 +2966,11 @@ function safeParse(s, fallback) {
   }
 
   // Wire form inputs
-  document.addEventListener('change', e => {
-    if (e.target.id === 'f_saleProductId') updateSaleAmount();
-  });
   document.addEventListener('input', e => {
-    if (e.target.id === 'f_saleQty' || e.target.id === 'f_saleAmount') {
-      if (e.target.id === 'f_saleAmount') e.target.dataset.auto = 'false';
+    if (e.target.id === 'f_saleProductSearch') handleProductSearchChange();
+    if (e.target.id === 'f_saleQty') updateSaleTotal();
+    if (e.target.id === 'f_saleAmount') {
+      e.target.dataset.auto = 'false';
       updateSaleTotal();
     }
   });
@@ -2941,12 +2979,13 @@ function safeParse(s, fallback) {
   $('saveSaleBtn').addEventListener('click', () => {
     const date = $('f_saleDate').value;
     const productId = $('f_saleProductId').value;
+    const productName = $('f_saleProductSearch').value;
     const quantity = parseFloat($('f_saleQty').value);
     const amount = parseFloat($('f_saleAmount').value);
     if (!date) return toast('Pick a date', 'error');
-    if (!productId) return toast('Pick a product', 'error');
+    if (!productId) return toast('Pick a product from the dropdown', 'error');
     if (!quantity || quantity <= 0) return toast('Quantity must be > 0', 'error');
-    if (!amount || amount < 0) return toast('Amount must be > 0', 'error');
+    if (isNaN(amount) || amount < 0) return toast('Amount must be ≥ 0', 'error');
 
     const product = state.products.find(p => p.id === productId);
     state.sales = state.sales || [];
@@ -2954,26 +2993,32 @@ function safeParse(s, fallback) {
       id: 's' + Date.now().toString(36),
       date,
       productId,
-      productName: product ? product.name : '',
+      productName: product ? product.name : productName.split(' — ')[0],
       quantity,
       amount,
       totalAmount: quantity * amount,
     });
-    saveData();
+    saveData({ push: true });   // pushes to sheet too — see saveData changes below
     toast('Sale recorded', 'success');
-    // Reset quantity but keep date/product for fast multi-entry
-    $('f_saleQty').value = 1;
+    // Reset form for next entry, default date back to today
+    $('f_saleDate').value = todayStr();
+    $('f_saleProductSearch').value = '';
+    $('f_saleProductId').value = '';
+    $('f_saleAmount').value = '';
     $('f_saleAmount').dataset.auto = 'true';
-    updateSaleAmount();
+    $('f_saleQty').value = 1;
+    updateSaleTotal();
     renderSalesView();
   });
 
   $('clearSaleBtn').addEventListener('click', () => {
     $('f_saleDate').value = todayStr();
-    $('f_saleQty').value = 1;
+    $('f_saleProductSearch').value = '';
+    $('f_saleProductId').value = '';
+    $('f_saleAmount').value = '';
     $('f_saleAmount').dataset.auto = 'true';
-    if ($('f_saleProductId').options.length) $('f_saleProductId').selectedIndex = 0;
-    updateSaleAmount();
+    $('f_saleQty').value = 1;
+    updateSaleTotal();
   });
 
   // Tab switching
@@ -3042,7 +3087,6 @@ function safeParse(s, fallback) {
       wrap.innerHTML = '<div class="empty-state">No sales recorded for this period yet.</div>';
       return;
     }
-    // Sort by date desc, then by id desc
     const sorted = [...rows].sort((a, b) => {
       if (a.date !== b.date) return b.date.localeCompare(a.date);
       return (b.id || '').localeCompare(a.id || '');
@@ -3085,7 +3129,7 @@ function safeParse(s, fallback) {
     const s = state.sales.find(x => x.id === delId);
     if (s && confirm(`Delete this sale (${s.productName} × ${s.quantity})?`)) {
       state.sales = state.sales.filter(x => x.id !== delId);
-      saveData();
+      saveData({ push: true });
       renderSalesView();
       toast('Sale deleted');
     }

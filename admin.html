@@ -1209,6 +1209,10 @@
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
                 Push to Sheet
               </button>
+              <button class="btn btn--ghost btn--sm" id="testDriveBtn" title="Verify the uploadImage action works">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
+                Test Drive Upload
+              </button>
             </div>
 
             <div class="field" style="margin-top:14px;background:var(--bg);padding:14px 18px;border-radius:var(--radius);border:1px solid var(--line)">
@@ -1867,7 +1871,13 @@
       // Done
       let msg = '✓ Saved & pushed';
       if (result.uploaded > 0) msg += ` · ${result.uploaded} image${result.uploaded > 1 ? 's' : ''} uploaded`;
-      if (result.failed > 0)   msg += ` · ${result.failed} upload${result.failed > 1 ? 's' : ''} failed`;
+      if (result.failed > 0) {
+        msg += ` · ${result.failed} upload${result.failed > 1 ? 's' : ''} failed`;
+        if (result.firstError) {
+          // Show the actual error so user can fix it
+          msg += ': ' + result.firstError;
+        }
+      }
       finishSyncBanner(result.failed > 0 ? 'err' : 'ok', msg);
       toast(msg, result.failed > 0 ? 'error' : 'success');
     } catch (err) {
@@ -2054,9 +2064,9 @@
     }
 
     const total = jobs.length;
-    if (total === 0) return { uploaded: 0, failed: 0 };
+    if (total === 0) return { uploaded: 0, failed: 0, firstError: null };
 
-    let uploaded = 0, failed = 0;
+    let uploaded = 0, failed = 0, firstError = null;
     for (let i = 0; i < jobs.length; i++) {
       const job = jobs[i];
       if (onProgress) onProgress(i, total);
@@ -2067,10 +2077,11 @@
       } catch (err) {
         console.warn('Upload failed for', job.filename, err);
         failed++;
+        if (!firstError) firstError = err.message || String(err);
       }
     }
     if (onProgress) onProgress(total, total);
-    return { uploaded, failed };
+    return { uploaded, failed, firstError };
   }
 
   function resizeImageFile(file, maxDim, quality) {
@@ -2637,6 +2648,28 @@ function uploadImage(data) {
 
   $('pushSheetsBtn').addEventListener('click', async () => {
     await pushToSheets(true);
+  });
+
+  // Test Drive Upload — uploads a tiny 1x1 pixel PNG to verify the uploadImage action works
+  $('testDriveBtn').addEventListener('click', async () => {
+    setSheetsStatus('loading', 'Testing Drive upload…');
+    // 1×1 transparent PNG (smallest valid image)
+    const tinyPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+    try {
+      const r = await callSheets('uploadImage', {
+        base64: tinyPng,
+        filename: 'test_pixel_' + Date.now() + '.png',
+        mimeType: 'image/png',
+      });
+      if (!r.ok || !r.url) throw new Error(r.error || 'No URL returned');
+      setSheetsStatus('ok', 'Drive upload works ✓', r.url);
+      toast('Test image uploaded to your Drive folder: ' + r.url, 'success');
+      console.log('Test upload returned:', r);
+    } catch (err) {
+      setSheetsStatus('err', 'Drive upload failed: ' + err.message);
+      toast('Drive upload failed: ' + err.message + ' — most likely the Apps Script needs to be re-deployed.', 'error');
+      console.error('Test upload error:', err);
+    }
   });
 
   async function pushToSheets(showToast) {

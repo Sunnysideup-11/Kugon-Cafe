@@ -1477,7 +1477,7 @@
      This is the Web App URL for the deployed Apps Script that
      reads/writes the Google Sheet "KG DB".
   ========================================================= */
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyaw9EbPKa_xlfXCqvlEKBfxRl2MAuwMlqv2Kg16rbCEyCUUZK5dSUsoGoyLZqt-Wbi/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw9Ovj5v9zDU0FQpH0Asm1pbLpDYsL2VCJRNpROwHLroBQnRjePJV02pZyM7zTrAvNJ/exec';
 
   const DEFAULT_DATA = {
     products: DEFAULT_PRODUCTS,
@@ -2526,14 +2526,42 @@ function safeParse(s, fallback) {
 
 // ============================================================
 // IMAGE UPLOAD TO GOOGLE DRIVE
-// Saves images to the Kugon Cafe Images folder, returns a public URL.
+// Auto-creates a "Kugon Cafe Images" folder in the script owner's Drive
+// (the account that owns this Sheet). Set DRIVE_FOLDER_ID below if you
+// want to use a specific folder — but it MUST be in the same Google
+// account as this sheet.
 // ============================================================
-const DRIVE_FOLDER_ID = '1htDc8Kw3AMDHsoVKMpvpbCCCusv6aqJb';
+const DRIVE_FOLDER_NAME = 'Kugon Cafe Images';
+const DRIVE_FOLDER_ID = '';  // leave blank for auto-create, or paste a folder ID
+
+// Run this function once from the Apps Script editor (▶ Run with this function
+// selected) to authorize Drive access. After the auth popup, image uploads
+// from admin.html will work.
+function setupDrive() {
+  const folder = getImagesFolder_();
+  return 'Ready ✓ Folder: ' + folder.getName() + ' (id: ' + folder.getId() + ')';
+}
+
+function getImagesFolder_() {
+  // 1) Try the explicitly-set folder ID first (if user pasted one)
+  if (DRIVE_FOLDER_ID) {
+    try {
+      return DriveApp.getFolderById(DRIVE_FOLDER_ID);
+    } catch (e) {
+      // fall through to auto-create
+    }
+  }
+  // 2) Find existing folder by name in script owner's Drive
+  const iter = DriveApp.getFoldersByName(DRIVE_FOLDER_NAME);
+  if (iter.hasNext()) return iter.next();
+  // 3) Otherwise create it
+  return DriveApp.createFolder(DRIVE_FOLDER_NAME);
+}
 
 function uploadImage(data) {
   if (!data || !data.base64) return { ok: false, error: 'Missing image data' };
   try {
-    const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+    const folder = getImagesFolder_();
     const base64 = data.base64.indexOf(',') >= 0 ? data.base64.split(',')[1] : data.base64;
     const decoded = Utilities.base64Decode(base64);
     const mime = data.mimeType || 'image/jpeg';
@@ -2549,6 +2577,7 @@ function uploadImage(data) {
       url: 'https://lh3.googleusercontent.com/d/' + fileId + '=w1200',
       fileId: fileId,
       filename: fname,
+      folderName: folder.getName(),
     };
   } catch (err) {
     return { ok: false, error: 'Upload failed: ' + (err.message || err) };

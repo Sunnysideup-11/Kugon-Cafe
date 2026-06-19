@@ -1,17 +1,25 @@
 /* =========================================================
    KUGON CAFÉ — simplified front-end
    No auth, no cart. Browse + product details + order popup.
-   Data can be overridden by admin.html via localStorage 'kugon_data'.
+   Reads data from Supabase on page load, caches in localStorage.
 ========================================================= */
 
 /* =========================================================
-   ⚠️  PASTE YOUR APPS SCRIPT WEB APP URL BELOW
-   This makes every visitor automatically fetch the latest
-   data from your Google Sheet when they load the page.
-   (Without this, only YOUR browser sees admin edits.)
+   SUPABASE CONFIG
+   Public-facing site reads (only) from Supabase tables:
+     products, categories, team, settings
 ========================================================= */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw9Ovj5v9zDU0FQpH0Asm1pbLpDYsL2VCJRNpROwHLroBQnRjePJV02pZyM7zTrAvNJ/exec';
-// Example: 'https://script.google.com/macros/s/AKfycby.../exec'
+const SUPABASE_URL = 'https://lwublboggsajovdhdgkc.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_PvNAseLho4PmEcD-49B9gA_6a9ESs2S';
+
+// Initialize the Supabase client (the CDN script must load before this file)
+const sb = (window.supabase && window.supabase.createClient)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+  : null;
+if (!sb) console.warn('Supabase client failed to load — falling back to local defaults');
+
+// Legacy — kept for backward compat with admin.html localStorage shape, unused for fetching
+const APPS_SCRIPT_URL = '';
 
 /* ---------- DEFAULT DATA ---------- */
 const DEFAULT_PRODUCTS = [
@@ -500,44 +508,77 @@ document.getElementById('contactForm').addEventListener('submit', e => {
   e.target.reset();
 });
 
-/* ---------- SHEETS SYNC (fetches latest from Apps Script on page load) ---------- */
-async function trySyncFromSheets() {
-  const url = (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'PASTE_YOUR_URL_HERE')
-    ? APPS_SCRIPT_URL
-    : (DATA.sheets && DATA.sheets.appsScriptUrl);
-  if (!url) return;
-  const res = await fetch(`${url}?action=getAll&t=${Date.now()}`, {
-    method: 'GET',
-    cache: 'no-store',
-  });
-  if (!res.ok) throw new Error('Fetch failed: ' + res.status);
-  const json = await res.json();
-  if (!json.ok || !json.data) return;
-  const remote = json.data;
-  if (remote.products && remote.products.length > 0) {
-    const merged = {
-      ...DATA,
-      products: remote.products,
-      contact: { ...DATA.contact, ...(remote.contact || {}) },
-      orderLinks: { ...DATA.orderLinks, ...(remote.orderLinks || {}) },
-      todaysPour: { ...DATA.todaysPour, ...(remote.todaysPour || {}) },
-      team: (remote.team && remote.team.length) ? remote.team : DATA.team,
-    };
-    localStorage.setItem('kugon_data', JSON.stringify({
-      ...JSON.parse(localStorage.getItem('kugon_data') || '{}'),
-      products: merged.products,
-      contact: merged.contact,
-      orderLinks: merged.orderLinks,
-      todaysPour: merged.todaysPour,
-      team: merged.team,
-    }));
-    DATA = loadData();
-    PRODUCTS = DATA.products;
-    applyDataToDom();
-    renderFeatured();
-    if (document.querySelector('.route--menu.is-active')) renderMenu();
-    console.log('Synced data from Google Sheets');
+/* =========================================================
+   SUPABASE SYNC — fetches latest data on page load
+========================================================= */
+
+// Transform Supabase product row (DB column names) to the JS shape app uses
+function dbProductToJs(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    price: Number(row.price) || 0,
+    color: row.color || '#caa169',
+    desc: row.description || '',
+    long: row.long_description || '',
+    notes: Array.isArray(row.notes) ? row.notes : [],
+    serving: row.serving || '',
+    caffeine: row.caffeine || '',
+    image: row.image || '',
+  };
+}
+
+async function trySyncFromSupabase() {
+  if (!sb) throw new Error('Supabase client not loaded');
+
+  // Fire all reads in parallel for speed
+  const [productsRes, teamRes, settingsRes] = await Promise.all([
+    sb.from('products').select('*').order('id'),
+    sb.from('team').select('*').order('sort_order'),
+    sb.from('settings').select('*'),
+  ]);
+
+  if (productsRes.error) throw new Error('products: ' + productsRes.error.message);
+  if (teamRes.error)     throw new Error('team: ' + teamRes.error.message);
+  if (settingsRes.error) throw new Error('settings: ' + settingsRes.error.message);
+
+  const products = (productsRes.data || []).map(dbProductToJs);
+  const team = (teamRes.data || []).map(t => ({
+    id: t.id, name: t.name, role: t.role || '', image: t.image || ''
+  }));
+
+  // Settings is a key-value table; reshape to { contact, orderLinks, todaysPour, ... }
+  const settingsMap = {};
+  (settingsRes.data || []).forEach(s => { settingsMap[s.key] = s.value || {}; });
+  const contact = { ...DATA.contact, ...(settingsMap.contact || {}) };
+  const orderLinks = { ...DATA.orderLinks, ...(settingsMap.orderLinks || {}) };
+  const todaysPour = { ...DATA.todaysPour, ...(settingsMap.todaysPour || {}) };
+
+  // Only update state if we actually got products back
+  if (products.length === 0) {
+    console.warn('Supabase returned 0 products — keeping defaults');
+    return;
   }
+
+  // Cache in localStorage so the next page load is instant
+  const cached = JSON.parse(localStorage.getItem('kugon_data') || '{}');
+  localStorage.setItem('kugon_data', JSON.stringify({
+    ...cached,
+    products,
+    contact,
+    orderLinks,
+    todaysPour,
+    team,
+  }));
+
+  // Apply to running state
+  DATA = loadData();
+  PRODUCTS = DATA.products;
+  applyDataToDom();
+  renderFeatured();
+  if (document.querySelector('.route--menu.is-active')) renderMenu();
+  console.log(`Synced ${products.length} products + ${team.length} team members from Supabase`);
 }
 
 /* ---------- SYNC BANNER (small UX flag while loading) ---------- */
@@ -558,7 +599,6 @@ function setSyncBanner(state, text) {
   b.classList.remove('is-ok', 'is-err');
   if (state === 'ok') b.classList.add('is-ok');
   if (state === 'err') b.classList.add('is-err');
-  // Remove the spinner if done
   if (state === 'ok' || state === 'err') {
     b.innerHTML = `<span>${text}</span>`;
     setTimeout(() => {
@@ -582,7 +622,7 @@ const syncTimeout = setTimeout(() => {
   }
 }, 6000);
 
-trySyncFromSheets()
+trySyncFromSupabase()
   .then(() => {
     clearTimeout(syncTimeout);
     document.body.removeAttribute('data-syncing');
@@ -592,5 +632,5 @@ trySyncFromSheets()
     clearTimeout(syncTimeout);
     document.body.removeAttribute('data-syncing');
     setSyncBanner('err', 'Showing cached menu');
-    console.warn('Sheets sync failed:', err.message);
+    console.warn('Supabase sync failed:', err.message);
   });

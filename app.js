@@ -18,6 +18,21 @@ const sb = (window.supabase && window.supabase.createClient)
   : null;
 if (!sb) console.warn('Supabase client failed to load — falling back to local defaults');
 
+// Public base URL for the Supabase Storage "images" bucket.
+const SB_IMG_BASE = SUPABASE_URL + '/storage/v1/object/public/images/';
+
+// Resolve any stored image value to a usable <img> src.
+//  - Full URLs (http/https) and data: URLs pass through unchanged (e.g. photos
+//    uploaded via admin, which are already full Supabase Storage URLs).
+//  - Bare paths like "images/Emmanuel.jpg" or "Emmanuel.jpg" are treated as
+//    filenames in the Supabase "images" bucket and rewritten to its public URL.
+//  - Empty / falsy values return '' so callers can show a placeholder instead.
+function imgSrc(val) {
+  if (!val) return '';
+  if (/^(https?:|data:)/i.test(val)) return val;
+  return SB_IMG_BASE + String(val).replace(/^\/+/, '').replace(/^images\//i, '');
+}
+
 // Legacy — kept for backward compat with admin.html localStorage shape, unused for fetching
 const APPS_SCRIPT_URL = '';
 
@@ -198,7 +213,7 @@ function applyDataToDom() {
     if (pPrice) pPrice.textContent = DATA.todaysPour.price || '';
     if (pImg && pSvg) {
       if (DATA.todaysPour.image) {
-        pImg.src = DATA.todaysPour.image;
+        pImg.src = imgSrc(DATA.todaysPour.image);
         pImg.alt = DATA.todaysPour.name || "Today's pour";
         pImg.hidden = false;
         pSvg.style.display = 'none';
@@ -216,7 +231,7 @@ function applyDataToDom() {
       const safeName = t.name.replace(/"/g, '&quot;');
       const initials = t.name.split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase();
       const photo = t.image
-        ? `<img class="team-card__avatar" src="${t.image}" alt="${safeName}" onerror="this.outerHTML='<div class=&quot;team-card__avatar team-card__avatar--placeholder&quot;>${initials}</div>'" />`
+        ? `<img class="team-card__avatar" src="${imgSrc(t.image)}" alt="${safeName}" onerror="this.outerHTML='<div class=&quot;team-card__avatar team-card__avatar--placeholder&quot;>${initials}</div>'" />`
         : `<div class="team-card__avatar team-card__avatar--placeholder">${initials}</div>`;
       return `<article class="team-card">
         ${photo}
@@ -330,7 +345,7 @@ function cupSvgLarge(color) {
 /* ---------- PRODUCT CARD ---------- */
 function productCard(p) {
   const visual = p.image
-    ? `<img src="${p.image}" class="product-card__photo" alt="${p.name}" loading="lazy" />`
+    ? `<img src="${imgSrc(p.image)}" class="product-card__photo" alt="${p.name}" loading="lazy" />`
     : cupSvg(p.color);
   return `
     <article class="product-card" data-product="${p.id}">
@@ -414,7 +429,7 @@ function openProductDetail(id) {
   if (!p) return;
   const el = document.getElementById('productDetail');
   const visual = p.image
-    ? `<img src="${p.image}" class="product-detail__photo" alt="${p.name}" />`
+    ? `<img src="${imgSrc(p.image)}" class="product-detail__photo" alt="${p.name}" />`
     : cupSvgLarge(p.color);
   el.innerHTML = `
     <div class="product-detail__visual ${p.image ? 'has-image' : ''}" style="--c1:${p.color};--c2:${shade(p.color, -40)}">

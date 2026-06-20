@@ -138,6 +138,23 @@ em { font-style: italic; }
      If you want it slightly muted, add: filter: brightness(1.1); */
 }
 
+/* Text wordmark shown if the logo image fails to load (onerror fallback) */
+.logo__text {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 44px;
+  letter-spacing: -.01em;
+  color: var(--ink);
+  white-space: nowrap;
+  display: block;
+}
+.logo__text--footer {
+  font-size: 2rem;
+  line-height: 88px;
+  color: var(--cream);
+}
+
 .nav__links {
   display: flex;
   gap: 4px;

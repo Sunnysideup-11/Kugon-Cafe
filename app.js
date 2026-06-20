@@ -596,44 +596,28 @@ async function trySyncFromSupabase() {
   console.log(`Synced ${products.length} products + ${team.length} team members from Supabase`);
 }
 
-/* ---------- SYNC BANNER (small UX flag while loading) ---------- */
-function showSyncBanner(text) {
-  let b = document.getElementById('syncBanner');
-  if (!b) {
-    b = document.createElement('div');
-    b.id = 'syncBanner';
-    b.className = 'sync-banner';
-    document.body.appendChild(b);
-  }
-  b.innerHTML = `<span class="sync-banner__spinner"></span> <span>${text}</span>`;
-  return b;
+/* ---------- SYNC SPINNER (small dot beside the theme toggle) ---------- */
+function showSyncBanner(/* text ignored — spinner only */) {
+  const d = document.getElementById('syncDot');
+  if (d) d.hidden = false;
+  return d;
 }
-function setSyncBanner(state, text) {
-  const b = document.getElementById('syncBanner');
-  if (!b) return;
-  b.classList.remove('is-ok', 'is-err');
-  if (state === 'ok') b.classList.add('is-ok');
-  if (state === 'err') b.classList.add('is-err');
-  if (state === 'ok' || state === 'err') {
-    b.innerHTML = `<span>${text}</span>`;
-    setTimeout(() => {
-      b.classList.add('is-fading');
-      setTimeout(() => b.remove(), 400);
-    }, 1500);
-  }
+function setSyncBanner(/* state, text ignored — just stop the spinner */) {
+  const d = document.getElementById('syncDot');
+  if (d) d.hidden = true;
 }
 
 /* ---------- INIT ---------- */
 applyDataToDom();
 renderFeatured();
 document.body.dataset.syncing = 'true';
-showSyncBanner('Loading latest menu…');
+showSyncBanner();
 
 // Failsafe: stop the syncing state after 6s no matter what
 const syncTimeout = setTimeout(() => {
   if (document.body.dataset.syncing) {
     document.body.removeAttribute('data-syncing');
-    setSyncBanner('err', 'Showing cached menu');
+    setSyncBanner();
   }
 }, 6000);
 
@@ -641,11 +625,11 @@ trySyncFromSupabase()
   .then(() => {
     clearTimeout(syncTimeout);
     document.body.removeAttribute('data-syncing');
-    setSyncBanner('ok', '✓ Latest menu loaded');
+    setSyncBanner();
   })
   .catch(err => {
     clearTimeout(syncTimeout);
     document.body.removeAttribute('data-syncing');
-    setSyncBanner('err', 'Showing cached menu');
+    setSyncBanner();
     console.warn('Supabase sync failed:', err.message);
   });

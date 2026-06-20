@@ -155,6 +155,21 @@ em { font-style: italic; }
   color: var(--cream);
 }
 
+/* Small sync spinner shown next to the theme toggle while data loads */
+.sync-dot {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: sync-spin .7s linear infinite;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+.sync-dot[hidden] { display: none; }
+@keyframes sync-spin { to { transform: rotate(360deg); } }
+
 .nav__links {
   display: flex;
   gap: 4px;

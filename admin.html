@@ -1607,6 +1607,25 @@
     return SB_IMG_BASE + String(val).replace(/^\/+/, '').replace(/^images\//i, '');
   }
 
+  // Best-effort: delete a previously-uploaded file from Supabase Storage when an
+  // image is removed or replaced. Only touches files in OUR buckets; ignores
+  // external URLs, data: URLs, and bare repo paths. Never throws — image cleanup
+  // must never block or fail a save.
+  async function dbDeleteImageByUrl(url) {
+    try {
+      if (!sb || !url || typeof url !== 'string') return;
+      const m = url.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/);
+      if (!m) return; // not a Supabase public storage URL
+      const bucket = m[1];
+      if (bucket !== 'images' && bucket !== 'product-images') return;
+      const path = decodeURIComponent(m[2].split('?')[0]);
+      const { error } = await sb.storage.from(bucket).remove([path]);
+      if (error) console.warn('Image cleanup failed:', error.message);
+    } catch (e) {
+      console.warn('Image cleanup skipped:', e.message);
+    }
+  }
+
   // ---------- Database helpers ----------
 
   // Transform Supabase row → JS product shape
@@ -2238,11 +2257,13 @@
     if (delId) {
       if (confirm('Delete this product? This removes it from the live website immediately.')) {
         try {
+          const prod = state.products.find(p => p.id === delId);
           await dbDeleteProduct(delId);
           state.products = state.products.filter(p => p.id !== delId);
           renderProductList();
           renderCategoryPills();
           saveData();
+          if (prod && prod.image) dbDeleteImageByUrl(prod.image);
           toast('Product deleted', 'success');
         } catch (err) {
           toast('Delete failed: ' + err.message, 'error');
@@ -2616,6 +2637,7 @@
     try {
       const fd = new FormData(e.target);
       const id = fd.get('id') || ('p' + Date.now().toString(36));
+      const prevImage = (state.products.find(p => p.id === id) || {}).image || '';
       const data = {
         id,
         name: fd.get('name').trim(),
@@ -2654,6 +2676,8 @@
       renderProductList();
       renderCategoryPills();
       saveData();
+      // Clean up the previous image if it was replaced or removed
+      if (prevImage && prevImage !== data.image) dbDeleteImageByUrl(prevImage);
       $('productModal').classList.remove('is-open');
       toast(idx >= 0 ? 'Product updated ✓' : 'Product added ✓', 'success');
     } catch (err) {
@@ -2827,6 +2851,7 @@
     btn.textContent = 'Saving…';
 
     try {
+      const prevImage = (state.todaysPour && state.todaysPour.image) || '';
       let imageUrl = currentPourImage || '';
       // If it's a base64 data URL, upload to the images bucket first
       if (imageUrl && imageUrl.startsWith('data:')) {
@@ -2847,6 +2872,7 @@
       currentPourImage = imageUrl;
       pourImageZone && pourImageZone.show(imageUrl);
       saveData();
+      if (prevImage && prevImage !== imageUrl) dbDeleteImageByUrl(prevImage);
       toast("Today's Pour updated on live site ✓", 'success');
     } catch (err) {
       console.error('Pour save failed:', err);
@@ -3160,6 +3186,7 @@
     const originalLabel = submitBtn ? submitBtn.textContent : '';
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Saving\u2026'; }
 
+    const prevImage = user.image || '';
     try {
       // Resolve image: data URL → upload to images bucket; URL/path → use as-is; empty → blank
       let imageUrl = '';
@@ -3189,6 +3216,7 @@
       setSession({ ...session, name: newName });
       applyRole(getSession());
       renderProfile();
+      if (prevImage && prevImage !== imageUrl) dbDeleteImageByUrl(prevImage);
       toast('Profile updated \u2713', 'success');
     } catch (err) {
       console.error('Profile save failed:', err);
@@ -3268,6 +3296,7 @@
     const fd = new FormData(e.target);
     const id = fd.get('id') || ('t' + Date.now().toString(36));
     const existing = state.team.find(t => t.id === id);
+    const prevImage = existing ? existing.image : '';
     // Preserve sort order on edit; append to the end for new members.
     const sortOrder = existing
       ? existing.sortOrder
@@ -3303,6 +3332,7 @@
       else state.team.push(data);
       saveData(false);
       renderTeam();
+      if (prevImage && prevImage !== data.image) dbDeleteImageByUrl(prevImage);
       $('teamModal').classList.remove('is-open');
       toast(existing ? 'Team member updated \u2713' : 'Team member added \u2713', 'success');
     } catch (err) {
@@ -3325,6 +3355,7 @@
           state.team = state.team.filter(t => t.id !== delId);
           saveData(false);
           renderTeam();
+          if (t.image) dbDeleteImageByUrl(t.image);
           toast('Removed from team', 'success');
         } catch (err) {
           console.error('Team delete failed:', err);

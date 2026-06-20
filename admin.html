@@ -988,13 +988,6 @@
         <div>
           <!-- TAB: MY PROFILE (both roles) -->
           <div class="admin-panel" data-panel="profile" hidden>
-            <div class="migration-banner">
-              <span class="migration-banner__icon">🚧</span>
-              <div>
-                <div class="migration-banner__title">Profile editing will move to Supabase in Session B</div>
-                <div class="migration-banner__hint">Login itself works against Supabase, but profile edits here save locally only. To change your password right now, update the <code>password_hash</code> column directly in the <code>admins</code> table.</div>
-              </div>
-            </div>
             <h2>My Profile</h2>
             <p class="help">Update your name or password. Your username can't be changed.</p>
 
@@ -1195,13 +1188,6 @@
 
           <!-- TAB: TEAM (Humans behind the bar) -->
           <div class="admin-panel" data-panel="team" hidden>
-            <div class="migration-banner">
-              <span class="migration-banner__icon">🚧</span>
-              <div>
-                <div class="migration-banner__title">Team editing is being migrated to Supabase next session</div>
-                <div class="migration-banner__hint">For now, edits here save locally only and won't appear on the live site. To update team data immediately, edit it directly in the Supabase dashboard → Tables → team.</div>
-              </div>
-            </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px;flex-wrap:wrap">
               <div>
                 <h2 style="margin-bottom:4px">The Humans Behind the Bar</h2>
@@ -1340,7 +1326,7 @@
                 <div>
                   <strong style="font-size:.92rem">How saving works now</strong>
                   <div class="field__hint" style="margin:2px 0 0">
-                    <strong>Products</strong> and <strong>Today's Pour</strong> save directly to Supabase when you click their respective Save buttons — changes are live immediately. <strong>Contact</strong> and <strong>Order Links</strong> save through the main "Save Changes" button. Other sections (Team, Categories, Profile, Sales, Employees) still save locally — they will be migrated in upcoming sessions.
+                    <strong>Products</strong>, <strong>Today's Pour</strong>, <strong>Team</strong>, <strong>Categories</strong> and <strong>Profile</strong> save directly to Supabase when you click their respective Save buttons — changes are live immediately. <strong>Contact</strong> and <strong>Order Links</strong> save through the main "Save Changes" button. The remaining sections (Sales, Employees) still save locally — they will be migrated in Session C.
                   </div>
                 </div>
               </div>
@@ -1354,18 +1340,16 @@
                 <ul style="margin:6px 0 0 18px;font-size:.85rem;color:var(--ink-soft)">
                   <li>Products (read &amp; write)</li>
                   <li>Today's Pour (read &amp; write)</li>
-                  <li>Team (read-only — edits local for now)</li>
+                  <li>Team CRUD (read &amp; write)</li>
+                  <li>Categories CRUD (read &amp; write)</li>
+                  <li>Profile editing (read &amp; write)</li>
                   <li>Contact &amp; Order Links</li>
-                  <li>Categories (read-only)</li>
                   <li>Admin / Employee login</li>
                 </ul>
               </div>
               <div style="background:var(--bg);padding:12px 14px;border-radius:var(--radius);border:1px solid var(--line)">
                 <strong style="font-size:.9rem;color:#facc15">⏳ Coming next session</strong>
                 <ul style="margin:6px 0 0 18px;font-size:.85rem;color:var(--ink-soft)">
-                  <li>Team CRUD (Session B)</li>
-                  <li>Categories CRUD (Session B)</li>
-                  <li>Profile editing (Session B)</li>
                   <li>Sales tracking (Session C)</li>
                   <li>Employee management (Session C)</li>
                 </ul>
@@ -1704,6 +1688,58 @@
   async function dbSaveSetting(key, value) {
     if (!sb) throw new Error('Supabase not loaded');
     const { error } = await sb.from('settings').upsert({ key, value });
+    if (error) throw new Error(error.message);
+  }
+
+  // Upsert a team member (JS shape → team columns)
+  async function dbSaveTeamMember(t) {
+    if (!sb) throw new Error('Supabase not loaded');
+    const row = {
+      id: t.id,
+      name: t.name,
+      role: t.role || null,
+      image: t.image || null,
+      sort_order: Number(t.sortOrder) || 0,
+    };
+    const { error } = await sb.from('team').upsert(row);
+    if (error) throw new Error(error.message);
+  }
+
+  // Delete a team member
+  async function dbDeleteTeamMember(id) {
+    if (!sb) throw new Error('Supabase not loaded');
+    const { error } = await sb.from('team').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+
+  // Add a category (the categories table's primary key IS the name)
+  async function dbSaveCategory(name) {
+    if (!sb) throw new Error('Supabase not loaded');
+    const { error } = await sb.from('categories').upsert({ name });
+    if (error) throw new Error(error.message);
+  }
+
+  // Delete a category by name
+  async function dbDeleteCategory(name) {
+    if (!sb) throw new Error('Supabase not loaded');
+    const { error } = await sb.from('categories').delete().eq('name', name);
+    if (error) throw new Error(error.message);
+  }
+
+  // Update a profile row (admins or employees).
+  // fields: { name?, image?, password? } — password is stored plaintext in
+  // password_hash to match the login comparison used elsewhere in this file.
+  async function dbSaveProfile(role, user, fields) {
+    if (!sb) throw new Error('Supabase not loaded');
+    const table = role === 'admin' ? 'admins' : 'employees';
+    const patch = {};
+    if (fields.name !== undefined)  patch.name = fields.name;
+    if (fields.image !== undefined) patch.image = fields.image || null;
+    if (fields.password)            patch.password_hash = fields.password;
+    if (Object.keys(patch).length === 0) return;
+    let q = sb.from(table).update(patch);
+    q = user.id ? q.eq('id', user.id) : q.eq('username', user.username);
+    const { error } = await q;
     if (error) throw new Error(error.message);
   }
 
@@ -2829,7 +2865,7 @@
     }).join('');
   }
 
-  $('addCategoryForm').addEventListener('submit', e => {
+  $('addCategoryForm').addEventListener('submit', async e => {
     e.preventDefault();
     const fd = new FormData(e.target);
     const name = (fd.get('newCat') || '').toString().trim();
@@ -2838,24 +2874,40 @@
     if (state.categories.some(c => c.toLowerCase() === name.toLowerCase())) {
       return toast('That category already exists', 'error');
     }
-    state.categories.push(name);
-    saveData();
-    renderCategoryPills();
-    e.target.reset();
-    toast(`Added "${name}"`, 'success');
+    const btn = e.target.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = true;
+    try {
+      await dbSaveCategory(name);
+      state.categories.push(name);
+      saveData(false);
+      renderCategoryPills();
+      e.target.reset();
+      toast(`Added "${name}" \u2713`, 'success');
+    } catch (err) {
+      console.error('Category save failed:', err);
+      toast('Save failed: ' + err.message, 'error');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   });
 
-  document.body.addEventListener('click', e => {
+  document.body.addEventListener('click', async e => {
     const cat = e.target.closest('[data-delcat]')?.dataset.delcat;
     if (!cat) return;
     const count = state.products.filter(p => p.category === cat).length;
     let msg = `Remove category "${cat}"?`;
     if (count > 0) msg += `\n\n${count} product${count > 1 ? 's are' : ' is'} using it. They'll keep their label but the category won't appear in dropdowns or menu chips.`;
     if (!confirm(msg)) return;
-    state.categories = state.categories.filter(c => c !== cat);
-    saveData();
-    renderCategoryPills();
-    toast(`Removed "${cat}"`);
+    try {
+      await dbDeleteCategory(cat);
+      state.categories = state.categories.filter(c => c !== cat);
+      saveData(false);
+      renderCategoryPills();
+      toast(`Removed "${cat}"`);
+    } catch (err) {
+      console.error('Category delete failed:', err);
+      toast('Delete failed: ' + err.message, 'error');
+    }
   });
 
   /* =========================================================
@@ -3070,7 +3122,7 @@
     profileImageZone.show(currentProfileImage);
   }
 
-  document.getElementById('profileForm').addEventListener('submit', e => {
+  document.getElementById('profileForm').addEventListener('submit', async e => {
     e.preventDefault();
     const session = getSession();
     if (!session) return;
@@ -3090,20 +3142,46 @@
                  collection.find(u => u.username && u.username.toLowerCase() === session.username.toLowerCase());
     if (!user) return toast('Account not found', 'error');
 
-    user.name = newName;
-    if (newPw) user.password = newPw;
-    // Image: currentProfileImage is the latest (null if removed)
-    user.image = currentProfileImage || '';
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalLabel = submitBtn ? submitBtn.textContent : '';
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Saving\u2026'; }
 
     try {
-      saveData();
+      // Resolve image: data URL → upload to images bucket; URL/path → use as-is; empty → blank
+      let imageUrl = '';
+      if (currentProfileImage) {
+        if (currentProfileImage.startsWith('data:')) {
+          if (submitBtn) submitBtn.textContent = 'Uploading photo\u2026';
+          imageUrl = await dbUploadImage(currentProfileImage, 'images', 'profile-' + (user.username || user.id));
+        } else {
+          imageUrl = currentProfileImage;
+        }
+      }
+
+      if (submitBtn) submitBtn.textContent = 'Saving to database\u2026';
+      await dbSaveProfile(session.role, user, {
+        name: newName,
+        image: imageUrl,
+        password: newPw || undefined,
+      });
+
+      // Update local state to match
+      user.name = newName;
+      user.image = imageUrl;
+      if (newPw) user.password = newPw;
+      currentProfileImage = imageUrl || null;
+
+      saveData(false);
+      setSession({ ...session, name: newName });
+      applyRole(getSession());
+      renderProfile();
+      toast('Profile updated \u2713', 'success');
     } catch (err) {
-      return toast('Storage full — try a smaller image', 'error');
+      console.error('Profile save failed:', err);
+      toast('Save failed: ' + err.message, 'error');
+    } finally {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
     }
-    setSession({ ...session, name: newName });
-    applyRole(getSession());
-    renderProfile();
-    toast('Profile updated', 'success');
   });
 
   /* =========================================================
@@ -3171,40 +3249,73 @@
     $('teamModal').classList.add('is-open');
   }
 
-  $('teamForm').addEventListener('submit', e => {
+  $('teamForm').addEventListener('submit', async e => {
     e.preventDefault();
     const fd = new FormData(e.target);
     const id = fd.get('id') || ('t' + Date.now().toString(36));
+    const existing = state.team.find(t => t.id === id);
+    // Preserve sort order on edit; append to the end for new members.
+    const sortOrder = existing
+      ? existing.sortOrder
+      : (state.team.reduce((max, t) => Math.max(max, Number(t.sortOrder) || 0), 0) + 1);
     const data = {
       id,
       name: (fd.get('name') || '').toString().trim(),
       role: (fd.get('role') || '').toString().trim(),
-      image: currentTeamImage || '',
+      image: '',
+      sortOrder,
     };
-    const idx = state.team.findIndex(t => t.id === id);
-    if (idx >= 0) state.team[idx] = data;
-    else state.team.push(data);
+
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalLabel = submitBtn ? submitBtn.textContent : '';
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Saving\u2026'; }
+
     try {
-      saveData();
+      // Resolve image: data URL → upload to images bucket; URL/path → use as-is; empty → blank
+      if (currentTeamImage) {
+        if (currentTeamImage.startsWith('data:')) {
+          if (submitBtn) submitBtn.textContent = 'Uploading photo\u2026';
+          data.image = await dbUploadImage(currentTeamImage, 'images', 'team-' + data.name);
+        } else {
+          data.image = currentTeamImage;
+        }
+      }
+
+      if (submitBtn) submitBtn.textContent = 'Saving to database\u2026';
+      await dbSaveTeamMember(data);
+
+      const idx = state.team.findIndex(t => t.id === id);
+      if (idx >= 0) state.team[idx] = data;
+      else state.team.push(data);
+      saveData(false);
       renderTeam();
       $('teamModal').classList.remove('is-open');
-      toast('Team member saved', 'success');
+      toast(existing ? 'Team member updated \u2713' : 'Team member added \u2713', 'success');
     } catch (err) {
-      toast('Storage full — try a smaller image', 'error');
+      console.error('Team save failed:', err);
+      toast('Save failed: ' + err.message, 'error');
+    } finally {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
     }
   });
 
-  document.body.addEventListener('click', e => {
+  document.body.addEventListener('click', async e => {
     const editId = e.target.closest('[data-editteam]')?.dataset.editteam;
     if (editId) return openTeamModal(state.team.find(t => t.id === editId));
     const delId = e.target.closest('[data-delteam]')?.dataset.delteam;
     if (delId) {
       const t = state.team.find(t => t.id === delId);
-      if (t && confirm(`Remove ${t.name} from the team?`)) {
-        state.team = state.team.filter(t => t.id !== delId);
-        saveData();
-        renderTeam();
-        toast('Removed from team');
+      if (t && confirm(`Remove ${t.name} from the team? This updates the live site immediately.`)) {
+        try {
+          await dbDeleteTeamMember(delId);
+          state.team = state.team.filter(t => t.id !== delId);
+          saveData(false);
+          renderTeam();
+          toast('Removed from team', 'success');
+        } catch (err) {
+          console.error('Team delete failed:', err);
+          toast('Delete failed: ' + err.message, 'error');
+        }
       }
     }
   });

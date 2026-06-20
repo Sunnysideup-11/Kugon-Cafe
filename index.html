@@ -2,6 +2,10 @@
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
+  <script>
+    /* Apply the saved theme before the page paints to avoid a Day→Night flash on load */
+    try { var t = localStorage.getItem('hb_theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kugon Cafe — Brewing Happiness in Every Cup</title>
   <meta name="description" content="Kugon Cafe — handcrafted coffee, warm vibes, and beans sourced with care. Order via Foodpanda, Grab, or message us on Facebook." />

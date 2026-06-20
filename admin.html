@@ -894,7 +894,7 @@
   <header class="nav">
     <div class="nav__inner container">
       <a href="index.html" class="logo" aria-label="Kugon Cafe home">
-        <img src="images/kugon-logo.png" alt="Kugon Cafe" class="logo__img" />
+        <img src="https://lwublboggsajovdhdgkc.supabase.co/storage/v1/object/public/images/kugon-logo.png" alt="Kugon Cafe" class="logo__img" onerror="this.onerror=null;this.outerHTML='<span class=&quot;logo__text&quot;>Kugon Cafe</span>'" />
       </a>
       <nav class="nav__links">
         <span class="nav-link is-active">Admin Panel</span>
@@ -1593,6 +1593,20 @@
   // Apps Script is fully gone — this is just a placeholder.
   const APPS_SCRIPT_URL = '';
 
+  // Public base URL for the Supabase Storage "images" bucket.
+  const SB_IMG_BASE = SUPABASE_URL + '/storage/v1/object/public/images/';
+
+  // Resolve any stored image value to a usable <img> src.
+  //  - Full URLs (http/https) and data: URLs pass through unchanged.
+  //  - Bare paths like "images/Emmanuel.jpg" or "Emmanuel.jpg" are treated as
+  //    filenames in the Supabase "images" bucket and rewritten to its public URL.
+  //  - Empty / falsy values return '' so callers can show a placeholder instead.
+  function imgSrc(val) {
+    if (!val) return '';
+    if (/^(https?:|data:)/i.test(val)) return val;
+    return SB_IMG_BASE + String(val).replace(/^\/+/, '').replace(/^images\//i, '');
+  }
+
   // ---------- Database helpers ----------
 
   // Transform Supabase row → JS product shape
@@ -2175,7 +2189,7 @@
             ${state.products.map(p => `
               <tr>
                 <td>${p.image
-                  ? `<img src="${p.image}" class="prod-thumb" alt="">`
+                  ? `<img src="${imgSrc(p.image)}" class="prod-thumb" alt="">`
                   : `<span class="prod-swatch" style="background:linear-gradient(135deg, ${p.color}, ${shade(p.color, -30)})"></span>`}</td>
                 <td><strong>${escapeHtml(p.name)}</strong></td>
               <td>${escapeHtml(p.category)}</td>
@@ -2484,7 +2498,7 @@
     function show(dataUrl, options) {
       options = options || {};
       if (dataUrl) {
-        previewImg.src = dataUrl;
+        previewImg.src = imgSrc(dataUrl);
         previewWrap.hidden = false;
         empty.hidden = true;
       } else {
@@ -3102,7 +3116,7 @@
     // Avatar in profile card — use image if available, else initials
     const avatarEl = $('profileAvatar');
     if (user?.image) {
-      avatarEl.innerHTML = `<img src="${user.image}" alt="${escapeHtml(user.name)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+      avatarEl.innerHTML = `<img src="${imgSrc(user.image)}" alt="${escapeHtml(user.name)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
     } else {
       avatarEl.textContent = initials(session.name);
     }
@@ -3215,7 +3229,7 @@
     wrap.innerHTML = `<div class="team-grid-admin">${
       state.team.map(t => {
         const photo = t.image
-          ? `<img src="${t.image}" class="team-card-admin__photo" alt="${escapeHtml(t.name)}" onerror="this.outerHTML='<div class=&quot;team-card-admin__photo team-card-admin__photo--placeholder&quot;>${escapeHtml(initials(t.name)).replace(/'/g, '&#39;')}</div>'" />`
+          ? `<img src="${imgSrc(t.image)}" class="team-card-admin__photo" alt="${escapeHtml(t.name)}" onerror="this.outerHTML='<div class=&quot;team-card-admin__photo team-card-admin__photo--placeholder&quot;>${escapeHtml(initials(t.name)).replace(/'/g, '&#39;')}</div>'" />`
           : `<div class="team-card-admin__photo team-card-admin__photo--placeholder">${escapeHtml(initials(t.name))}</div>`;
         return `
           <div class="team-card-admin">

@@ -13,6 +13,23 @@
     /* Fix: [hidden] attribute must beat CSS display rules */
     [hidden] { display: none !important; }
 
+    /* Migration-in-progress banner shown at top of unmigrated panels */
+    .migration-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: color-mix(in srgb, #facc15 14%, var(--bg));
+      border: 1px solid color-mix(in srgb, #facc15 35%, var(--line));
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin: 0 0 24px;
+      font-size: .9rem;
+      line-height: 1.45;
+    }
+    .migration-banner__icon { font-size: 1.3rem; flex-shrink: 0; }
+    .migration-banner__title { font-weight: 600; margin-bottom: 2px; }
+    .migration-banner__hint { color: var(--ink-soft); }
+
     /* Admin-only overrides */
     .admin-wrap { padding: 32px 0 80px; }
     .admin-head {
@@ -884,14 +901,21 @@
             Employees
           </button>
           <button class="admin-nav__item" data-tab="drive" data-role-admin>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-            Google Sheets
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 11v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6"/></svg>
+            Supabase
           </button>
         </aside>
 
         <div>
           <!-- TAB: MY PROFILE (both roles) -->
           <div class="admin-panel" data-panel="profile" hidden>
+            <div class="migration-banner">
+              <span class="migration-banner__icon">🚧</span>
+              <div>
+                <div class="migration-banner__title">Profile editing will move to Supabase in Session B</div>
+                <div class="migration-banner__hint">Login itself works against Supabase, but profile edits here save locally only. To change your password right now, update the <code>password_hash</code> column directly in the <code>admins</code> table.</div>
+              </div>
+            </div>
             <h2>My Profile</h2>
             <p class="help">Update your name or password. Your username can't be changed.</p>
 
@@ -1016,12 +1040,23 @@
 
           <!-- TAB: PRODUCTS -->
           <div class="admin-panel" data-panel="products" hidden>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px;flex-wrap:wrap">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:12px;flex-wrap:wrap">
               <div>
                 <h2 style="margin-bottom:4px">Products</h2>
-                <p class="help" style="margin:0">Add, edit, or remove menu items.</p>
+                <p class="help" style="margin:0">Add, edit, or remove menu items. Changes save to Supabase immediately.</p>
               </div>
-              <button class="btn btn--primary btn--sm" id="addProductBtn">+ Add Product</button>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn btn--ghost btn--sm" id="exportCsvBtn" title="Download all products as CSV">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Export CSV
+                </button>
+                <button class="btn btn--ghost btn--sm" id="importCsvBtn" title="Bulk import/replace from a CSV">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Import CSV
+                </button>
+                <input type="file" id="csvFileInput" accept=".csv,text/csv" hidden />
+                <button class="btn btn--primary btn--sm" id="addProductBtn">+ Add Product</button>
+              </div>
             </div>
 
             <!-- Today's Pour (featured on home page) -->
@@ -1081,6 +1116,13 @@
 
           <!-- TAB: TEAM (Humans behind the bar) -->
           <div class="admin-panel" data-panel="team" hidden>
+            <div class="migration-banner">
+              <span class="migration-banner__icon">🚧</span>
+              <div>
+                <div class="migration-banner__title">Team editing is being migrated to Supabase next session</div>
+                <div class="migration-banner__hint">For now, edits here save locally only and won't appear on the live site. To update team data immediately, edit it directly in the Supabase dashboard → Tables → team.</div>
+              </div>
+            </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px;flex-wrap:wrap">
               <div>
                 <h2 style="margin-bottom:4px">The Humans Behind the Bar</h2>
@@ -1093,6 +1135,13 @@
 
           <!-- TAB: SALES -->
           <div class="admin-panel" data-panel="sales" hidden>
+            <div class="migration-banner">
+              <span class="migration-banner__icon">🚧</span>
+              <div>
+                <div class="migration-banner__title">Sales tracking will move to Supabase in Session C</div>
+                <div class="migration-banner__hint">For now, sales you record here are saved in your browser only. They will not sync between devices or appear in the Supabase database yet.</div>
+              </div>
+            </div>
             <h2>Sales Tracking</h2>
             <p class="help">Record each sale per product, then view summaries Daily / Monthly / Yearly.</p>
 
@@ -1156,6 +1205,13 @@
 
           <!-- TAB: EMPLOYEES (admin only) -->
           <div class="admin-panel" data-panel="employees" hidden>
+            <div class="migration-banner">
+              <span class="migration-banner__icon">🚧</span>
+              <div>
+                <div class="migration-banner__title">Employee management will move to Supabase in Session C</div>
+                <div class="migration-banner__hint">Existing employees from Supabase already log in correctly. Adding/editing employees here saves locally only — to add an employee right now, insert a row directly into the <code>employees</code> table in Supabase.</div>
+              </div>
+            </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px;flex-wrap:wrap">
               <div>
                 <h2 style="margin-bottom:4px">Employee Accounts</h2>
@@ -1169,88 +1225,77 @@
             <div id="employeesList"></div>
           </div>
 
-          <!-- TAB: SHEETS (Google Sheets database) -->
+          <!-- TAB: SUPABASE (database management) -->
           <div class="admin-panel" data-panel="drive" hidden>
-            <h2>Google Sheets Database</h2>
-            <p class="help">Two-way sync between admin.html and your Google Sheet.</p>
+            <h2>Supabase Database</h2>
+            <p class="help">Your Kugon Cafe data is stored in a Supabase Postgres database. Changes you make in the Products section save directly there and appear on the live site immediately.</p>
 
             <!-- Connection status -->
             <div class="sheets-status" id="sheetsStatus"></div>
 
-            <!-- Config inputs -->
-            <div class="field-row">
+            <div class="field-row" style="margin-top:18px">
               <div class="field">
-                <label>Spreadsheet ID</label>
-                <input type="text" id="f_sheetId" placeholder="From the sheet URL: docs.google.com/spreadsheets/d/THIS_PART/edit" />
-                <div class="field__hint">The long ID in the sheet URL between <code>/d/</code> and <code>/edit</code>.</div>
+                <label>Project URL</label>
+                <input type="text" value="https://lwublboggsajovdhdgkc.supabase.co" readonly style="background:var(--bg);font-family:'SF Mono',monospace;font-size:.78rem" />
+              </div>
+              <div class="field">
+                <label>Project ID</label>
+                <input type="text" value="lwublboggsajovdhdgkc" readonly style="background:var(--bg);font-family:'SF Mono',monospace;font-size:.78rem" />
               </div>
             </div>
-            <div class="field">
-              <label>Apps Script Web App URL</label>
-              <input type="url" id="f_appsScriptUrl" readonly style="background:var(--bg);opacity:.85;font-family:'SF Mono',monospace;font-size:.78rem;cursor:not-allowed" />
-              <div class="field__hint">🔒 Hardcoded in <code>admin.html</code>. To change it, edit the <code>APPS_SCRIPT_URL</code> constant near the top of the script.</div>
-            </div>
 
-            <!-- Actions -->
             <div class="sheets-actions">
-              <button class="btn btn--primary btn--sm" id="testSheetsBtn">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                Test Connection
+              <button class="btn btn--primary btn--sm" id="refreshDataBtn">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                Refresh from Supabase
               </button>
-              <button class="btn btn--ghost btn--sm" id="initSheetsBtn">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h18M12 3v18"/></svg>
-                Initialize Sheet Headers
-              </button>
-              <button class="btn btn--ghost btn--sm" id="pullSheetsBtn">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
-                Pull from Sheet
-              </button>
-              <button class="btn btn--ghost btn--sm" id="pushSheetsBtn">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-                Push to Sheet
-              </button>
+              <a class="btn btn--ghost btn--sm" href="https://supabase.com/dashboard/project/lwublboggsajovdhdgkc" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Open Supabase Dashboard
+              </a>
             </div>
 
             <div class="field" style="margin-top:14px;background:var(--bg);padding:14px 18px;border-radius:var(--radius);border:1px solid var(--line)">
               <div style="display:flex;align-items:center;gap:10px">
                 <span style="font-size:1.2rem">ℹ️</span>
                 <div>
-                  <strong style="font-size:.92rem">Auto-push on main saves</strong>
-                  <div class="field__hint" style="margin:2px 0 0">Clicking <strong>Save Changes</strong>, <strong>Save</strong> (Today's Pour), or <strong>+ Add Sale</strong> automatically pushes to the Google Sheet. For products/team/employees, use the <strong>Push to Sheet</strong> button above when you're ready to publish.</div>
+                  <strong style="font-size:.92rem">How saving works now</strong>
+                  <div class="field__hint" style="margin:2px 0 0">
+                    <strong>Products</strong> and <strong>Today's Pour</strong> save directly to Supabase when you click their respective Save buttons — changes are live immediately. <strong>Contact</strong> and <strong>Order Links</strong> save through the main "Save Changes" button. Other sections (Team, Categories, Profile, Sales, Employees) still save locally — they will be migrated in upcoming sessions.
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- Setup guide -->
-            <details class="sheets-setup">
-              <summary><strong>📖 First-time setup</strong> (do this once, ~5 minutes)</summary>
-              <ol>
-                <li>Open your Google Sheet, then click <strong>Extensions → Apps Script</strong></li>
-                <li>Delete any existing code in the editor. <strong>Paste the script below</strong>:</li>
-              </ol>
-              <div class="code-block-wrap">
-                <button class="btn btn--ghost btn--sm" id="copyScriptBtn">Copy Script</button>
-                <pre id="appsScriptCode"></pre>
+            <!-- Migration status -->
+            <h2 style="margin-top:28px;font-size:1.2rem">Migration Status</h2>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+              <div style="background:var(--bg);padding:12px 14px;border-radius:var(--radius);border:1px solid var(--line)">
+                <strong style="font-size:.9rem;color:#4ade80">✓ On Supabase</strong>
+                <ul style="margin:6px 0 0 18px;font-size:.85rem;color:var(--ink-soft)">
+                  <li>Products (read &amp; write)</li>
+                  <li>Today's Pour (read &amp; write)</li>
+                  <li>Team (read-only — edits local for now)</li>
+                  <li>Contact &amp; Order Links</li>
+                  <li>Categories (read-only)</li>
+                  <li>Admin / Employee login</li>
+                </ul>
               </div>
-              <ol start="3">
-                <li>Click the disk icon (💾) to save. Name it anything (e.g. "Kugon API").</li>
-                <li>Click <strong>Deploy → New deployment</strong></li>
-                <li>Click the gear icon ⚙️ next to "Select type" → choose <strong>Web app</strong></li>
-                <li>Set <strong>Execute as: Me</strong> and <strong>Who has access: Anyone</strong></li>
-                <li>Click <strong>Deploy</strong>. Authorize when prompted (click "Advanced" → "Go to {script name}" → "Allow")</li>
-                <li><strong>Copy the Web app URL</strong> shown and paste it above</li>
-                <li>Click <strong>Test Connection</strong> — should say "Connected ✓"</li>
-                <li>Click <strong>Initialize Sheet Headers</strong> — fills your 6 tabs with proper column headers</li>
-                <li>Click <strong>Push to Sheet</strong> — uploads all your current data to the sheet</li>
-              </ol>
-              <p class="help" style="margin-top:12px">
-                <strong>Important:</strong> If you ever change the Apps Script code, you must <strong>Manage Deployments → Edit → New version → Deploy</strong> to apply changes. The URL stays the same.
-              </p>
-            </details>
+              <div style="background:var(--bg);padding:12px 14px;border-radius:var(--radius);border:1px solid var(--line)">
+                <strong style="font-size:.9rem;color:#facc15">⏳ Coming next session</strong>
+                <ul style="margin:6px 0 0 18px;font-size:.85rem;color:var(--ink-soft)">
+                  <li>Team CRUD (Session B)</li>
+                  <li>Categories CRUD (Session B)</li>
+                  <li>Profile editing (Session B)</li>
+                  <li>Sales tracking (Session C)</li>
+                  <li>Employee management (Session C)</li>
+                </ul>
+              </div>
+            </div>
 
             <!-- Current data preview -->
             <h2 style="margin-top:28px;font-size:1.2rem">Local Data (JSON)</h2>
-            <p class="help">This is the data currently in your browser — what gets pushed to the sheet.</p>
+            <p class="help">Cached copy of your data in this browser.</p>
             <div class="json-preview" id="jsonPreview"></div>
           </div>
 
@@ -1411,9 +1456,12 @@
   <!-- TOASTS -->
   <div class="toasts" id="toasts" aria-live="polite"></div>
 
+  <!-- Supabase JS client (loaded before main admin script) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <script>
   /* =========================================================
-     ADMIN PANEL — Kugon Cafe
+     ADMIN PANEL — Kugon Cafe (Supabase edition)
   ========================================================= */
 
   /* ---------- DEFAULTS (must match app.js DEFAULT_DATA) ---------- */
@@ -1469,17 +1517,164 @@
   ];
 
   /* =========================================================
-     HARDCODED APPS SCRIPT URL
-     This is the Web App URL for the deployed Apps Script that
-     reads/writes the Google Sheet "KG DB".
+     SUPABASE CONFIG & HELPER LAYER
   ========================================================= */
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw9Ovj5v9zDU0FQpH0Asm1pbLpDYsL2VCJRNpROwHLroBQnRjePJV02pZyM7zTrAvNJ/exec';
+  const SUPABASE_URL = 'https://lwublboggsajovdhdgkc.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_PvNAseLho4PmEcD-49B9gA_6a9ESs2S';
+
+  const sb = (window.supabase && window.supabase.createClient)
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+    : null;
+
+  // Legacy constant kept so existing code that references it doesn't crash.
+  // Apps Script is fully gone — this is just a placeholder.
+  const APPS_SCRIPT_URL = '';
+
+  // ---------- Database helpers ----------
+
+  // Transform Supabase row → JS product shape
+  function dbProductToJs(row) {
+    return {
+      id: row.id,
+      name: row.name,
+      category: row.category || '',
+      price: Number(row.price) || 0,
+      color: row.color || '#caa169',
+      desc: row.description || '',
+      long: row.long_description || '',
+      notes: Array.isArray(row.notes) ? row.notes : [],
+      serving: row.serving || '',
+      caffeine: row.caffeine || '',
+      image: row.image || '',
+    };
+  }
+
+  // Inverse — JS shape → Supabase row columns
+  function jsProductToDb(p) {
+    return {
+      id: p.id,
+      name: p.name,
+      category: p.category || null,
+      price: Number(p.price) || 0,
+      color: p.color || null,
+      description: p.desc || null,
+      long_description: p.long || null,
+      notes: Array.isArray(p.notes) ? p.notes : [],
+      serving: p.serving || null,
+      caffeine: p.caffeine || null,
+      image: p.image || null,
+    };
+  }
+
+  // Fetch everything from Supabase, return state-shaped object
+  async function dbLoadAll() {
+    if (!sb) throw new Error('Supabase client not loaded');
+    const [pRes, tRes, cRes, sRes, aRes, eRes] = await Promise.all([
+      sb.from('products').select('*').order('id'),
+      sb.from('team').select('*').order('sort_order'),
+      sb.from('categories').select('*').order('name'),
+      sb.from('settings').select('*'),
+      sb.from('admins').select('*'),
+      sb.from('employees').select('*'),
+    ]);
+    if (pRes.error) throw new Error('products: ' + pRes.error.message);
+    if (tRes.error) throw new Error('team: ' + tRes.error.message);
+    if (cRes.error) throw new Error('categories: ' + cRes.error.message);
+    if (sRes.error) throw new Error('settings: ' + sRes.error.message);
+    if (aRes.error) console.warn('admins:', aRes.error.message);
+    if (eRes.error) console.warn('employees:', eRes.error.message);
+
+    const settingsMap = {};
+    (sRes.data || []).forEach(s => { settingsMap[s.key] = s.value || {}; });
+
+    return {
+      products: (pRes.data || []).map(dbProductToJs),
+      team: (tRes.data || []).map(t => ({
+        id: t.id, name: t.name, role: t.role || '', image: t.image || '', sortOrder: t.sort_order || 0
+      })),
+      categories: (cRes.data || []).map(c => c.name),
+      contact: settingsMap.contact || {},
+      orderLinks: settingsMap.orderLinks || {},
+      todaysPour: settingsMap.todaysPour || {},
+      admins: (aRes.data || []).map(a => ({
+        id: a.id, username: a.username, name: a.name || '',
+        password: a.password_hash || '', image: a.image || '', createdAt: a.created_at,
+      })),
+      employees: (eRes.data || []).map(e => ({
+        id: e.id, username: e.username, name: e.name || '',
+        password: e.password_hash || '', image: e.image || '', createdAt: e.created_at,
+      })),
+    };
+  }
+
+  // Upsert a product
+  async function dbSaveProduct(p) {
+    if (!sb) throw new Error('Supabase not loaded');
+    const { error } = await sb.from('products').upsert(jsProductToDb(p));
+    if (error) throw new Error(error.message);
+  }
+
+  // Delete a product
+  async function dbDeleteProduct(id) {
+    if (!sb) throw new Error('Supabase not loaded');
+    const { error } = await sb.from('products').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+
+  // Update a settings key (jsonb)
+  async function dbSaveSetting(key, value) {
+    if (!sb) throw new Error('Supabase not loaded');
+    const { error } = await sb.from('settings').upsert({ key, value });
+    if (error) throw new Error(error.message);
+  }
+
+  // ---------- Storage helpers ----------
+
+  // Upload a base64 data URL or a File to a bucket. Returns the public URL.
+  // Usage: await dbUploadImage(fileOrBase64, 'product-images', 'optional-filename')
+  async function dbUploadImage(fileOrBase64, bucket, filenameHint) {
+    if (!sb) throw new Error('Supabase not loaded');
+    if (!bucket) throw new Error('Bucket name required');
+
+    let blob, ext = 'jpg', mime = 'image/jpeg';
+    if (typeof fileOrBase64 === 'string') {
+      // base64 data URL
+      const m = fileOrBase64.match(/^data:(image\/[^;]+);base64,(.+)$/);
+      if (!m) throw new Error('Invalid image data URL');
+      mime = m[1];
+      ext = mime === 'image/png' ? 'png' : (mime === 'image/webp' ? 'webp' : 'jpg');
+      const bin = atob(m[2]);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      blob = new Blob([bytes], { type: mime });
+    } else {
+      // File
+      blob = fileOrBase64;
+      mime = fileOrBase64.type || 'image/jpeg';
+      ext = (fileOrBase64.name || '').split('.').pop() || 'jpg';
+    }
+
+    const safeName = (filenameHint || 'img')
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .slice(0, 40);
+    const path = `${safeName}_${Date.now()}.${ext}`;
+
+    const { error } = await sb.storage.from(bucket).upload(path, blob, {
+      contentType: mime,
+      cacheControl: '3600',
+      upsert: false,
+    });
+    if (error) throw new Error('Upload failed: ' + error.message);
+
+    const { data: pub } = sb.storage.from(bucket).getPublicUrl(path);
+    return pub.publicUrl;
+  }
 
   const DEFAULT_DATA = {
     products: DEFAULT_PRODUCTS,
     contact: {
-      address: 'Macabulos Dr,<br/>Tarlac City, Tarlac<br/>Philippines',
-      addressShort: 'Macabulos Dr, Tarlac City',
+      address: 'Kugon Café, Macabulos Dr, San Roque,<br/>Tarlac City, 2300 Tarlac',
+      addressShort: 'Macabulos Dr, San Roque, Tarlac City',
       hours: 'Mon–Fri · 10:00am – 12:00am<br/>Sat–Sun · 8:00am – 10:00pm',
       phone: '+63 2 123 4567',
       phoneHref: 'tel:+6321234567',
@@ -1552,22 +1747,11 @@
   function saveData(opts) {
     opts = (typeof opts === 'object' && opts !== null) ? opts : (opts === false ? { showToast: false } : {});
     const showToast = opts.showToast !== false;
-    const shouldPush = opts.push === true;
     localStorage.setItem('kugon_data', JSON.stringify(state));
     dirty = false;
     updateStatus('saved');
     refreshJsonPreview();
-    if (shouldPush) {
-      // Explicit push requested (e.g. from Save Changes button)
-      pushToSheets(false).then(() => {
-        if (showToast) toast('Saved & pushed to sheet ✓', 'success');
-      }).catch(err => {
-        if (showToast) toast('Saved locally — push failed: ' + err.message, 'error');
-        console.warn('Push failed:', err);
-      });
-    } else {
-      if (showToast) toast('Saved locally', 'success');
-    }
+    if (showToast) toast('Saved locally', 'success');
   }
 
   function markDirty() {
@@ -1669,7 +1853,6 @@
     safe('profile', renderProfile);
     safe('todaysPour', renderTodaysPour);
     safe('jsonPreview', refreshJsonPreview);
-    safe('appsScript', injectAppsScriptCode);
     safe('sheetsStatus', refreshSheetsStatus);
   }
 
@@ -1750,9 +1933,6 @@
     $('f_foodpanda').value = state.orderLinks.foodpanda || '';
     $('f_grab').value = state.orderLinks.grab || '';
     $('f_facebook').value = state.orderLinks.facebook || '';
-    // Sheets config
-    $('f_sheetId').value = state.sheets.sheetId || '';
-    $('f_appsScriptUrl').value = APPS_SCRIPT_URL;
   }
 
   // Listen for input changes to mark dirty
@@ -1761,14 +1941,6 @@
     document.addEventListener('input', e => {
       if (e.target.id === id) markDirty();
     });
-  });
-
-  // Sheet ID — saves locally on change (not pushed until user clicks Push to Sheet)
-  document.addEventListener('change', e => {
-    if (e.target.id === 'f_sheetId') {
-      state.sheets.sheetId = e.target.value.trim();
-      saveData(false);
-    }
   });
 
   // Maps short-link extractor (best effort)
@@ -1806,27 +1978,60 @@
     }
   });
 
-  /* ---------- SAVE ---------- */
-  $('saveBtn').addEventListener('click', () => {
-    // Pull form values into state
-    state.contact = {
-      ...state.contact,
-      address: $('f_address').value,
-      addressShort: $('f_addressShort').value,
-      hours: $('f_hours').value,
-      phone: $('f_phone').value,
-      phoneHref: 'tel:' + $('f_phone').value.replace(/\s/g, ''),
-      email: $('f_email').value,
-      mapLat: parseFloat($('f_mapLat').value) || DEFAULT_DATA.contact.mapLat,
-      mapLng: parseFloat($('f_mapLng').value) || DEFAULT_DATA.contact.mapLng,
-      mapZoom: parseInt($('f_mapZoom').value, 10) || 17,
-    };
-    state.orderLinks = {
-      foodpanda: $('f_foodpanda').value,
-      grab: $('f_grab').value,
-      facebook: $('f_facebook').value,
-    };
-    saveData({ push: true });
+  /* ---------- SAVE CHANGES (Contact + Order Links → Supabase settings) ---------- */
+  $('saveBtn').addEventListener('click', async () => {
+    const btn = $('saveBtn');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.style.opacity = '.65';
+    btn.style.cursor = 'wait';
+    btn.textContent = 'Saving…';
+    makeSyncBanner('Saving changes…');
+
+    try {
+      // Build contact + orderLinks from form fields
+      const contact = {
+        ...state.contact,
+        address: $('f_address').value,
+        addressShort: $('f_addressShort').value,
+        hours: $('f_hours').value,
+        phone: $('f_phone').value,
+        phoneHref: 'tel:' + $('f_phone').value.replace(/\s/g, ''),
+        email: $('f_email').value,
+        mapLat: parseFloat($('f_mapLat').value) || DEFAULT_DATA.contact.mapLat,
+        mapLng: parseFloat($('f_mapLng').value) || DEFAULT_DATA.contact.mapLng,
+        mapZoom: parseInt($('f_mapZoom').value, 10) || 17,
+      };
+      const orderLinks = {
+        foodpanda: $('f_foodpanda').value,
+        grab: $('f_grab').value,
+        facebook: $('f_facebook').value,
+      };
+
+      const banner = document.getElementById('syncBanner');
+      if (banner) banner.innerHTML = '<span class="sync-banner__spinner"></span> <span>Saving Contact…</span>';
+      await dbSaveSetting('contact', contact);
+      if (banner) banner.innerHTML = '<span class="sync-banner__spinner"></span> <span>Saving Order Links…</span>';
+      await dbSaveSetting('orderLinks', orderLinks);
+
+      state.contact = contact;
+      state.orderLinks = orderLinks;
+      localStorage.setItem('kugon_data', JSON.stringify(state));
+      dirty = false;
+      updateStatus('saved');
+      refreshJsonPreview();
+      finishSyncBanner('ok', '✓ Saved to Supabase');
+      toast('Contact & Order Links updated ✓', 'success');
+    } catch (err) {
+      console.error('Save failed:', err);
+      finishSyncBanner('err', '⚠ Save failed: ' + err.message);
+      toast('Save failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.style.opacity = '';
+      btn.style.cursor = '';
+      btn.textContent = originalText;
+    }
   });
 
   /* ---------- RESET ---------- */
@@ -1895,21 +2100,208 @@
     return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   }
 
-  document.body.addEventListener('click', e => {
+  document.body.addEventListener('click', async e => {
     const editId = e.target.closest('[data-edit]')?.dataset.edit;
     if (editId) openProductModal(state.products.find(p => p.id === editId));
     const delId = e.target.closest('[data-delete]')?.dataset.delete;
     if (delId) {
-      if (confirm('Delete this product?')) {
-        state.products = state.products.filter(p => p.id !== delId);
-        renderProductList();
-        renderCategoryPills();
-        saveData();
+      if (confirm('Delete this product? This removes it from the live website immediately.')) {
+        try {
+          await dbDeleteProduct(delId);
+          state.products = state.products.filter(p => p.id !== delId);
+          renderProductList();
+          renderCategoryPills();
+          saveData();
+          toast('Product deleted', 'success');
+        } catch (err) {
+          toast('Delete failed: ' + err.message, 'error');
+        }
       }
     }
   });
 
   $('addProductBtn').addEventListener('click', () => openProductModal(null));
+
+  /* =========================================================
+     CSV IMPORT / EXPORT (products)
+     Columns: id, name, category, price, description, long_description,
+              notes, serving, caffeine, color, image
+     `notes` is a pipe-separated list ("Bold|Sweet|Nutty")
+  ========================================================= */
+  const CSV_COLUMNS = [
+    'id', 'name', 'category', 'price', 'description', 'long_description',
+    'notes', 'serving', 'caffeine', 'color', 'image',
+  ];
+
+  // Convert a string to a CSV-safe field (quote if contains comma/quote/newline)
+  function csvEscape(val) {
+    if (val == null) return '';
+    const s = String(val);
+    if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  }
+
+  // Parse a CSV row respecting quoted fields with escaped quotes
+  function parseCsvLine(line) {
+    const fields = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"') {
+          if (line[i + 1] === '"') { cur += '"'; i++; }
+          else { inQuotes = false; }
+        } else {
+          cur += ch;
+        }
+      } else {
+        if (ch === ',') { fields.push(cur); cur = ''; }
+        else if (ch === '"') { inQuotes = true; }
+        else { cur += ch; }
+      }
+    }
+    fields.push(cur);
+    return fields;
+  }
+
+  function parseCsv(text) {
+    // Split lines but respect quoted newlines
+    const rows = [];
+    let line = '';
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '"') { inQuotes = !inQuotes; line += ch; }
+      else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+        if (line.length > 0) rows.push(line);
+        line = '';
+        if (ch === '\r' && text[i + 1] === '\n') i++;
+      } else {
+        line += ch;
+      }
+    }
+    if (line.length > 0) rows.push(line);
+    return rows.map(parseCsvLine);
+  }
+
+  // EXPORT
+  $('exportCsvBtn').addEventListener('click', () => {
+    const products = state.products || [];
+    if (products.length === 0) {
+      toast('No products to export', 'error');
+      return;
+    }
+    const header = CSV_COLUMNS.join(',');
+    const rows = products.map(p => CSV_COLUMNS.map(col => {
+      if (col === 'description')       return csvEscape(p.desc || '');
+      if (col === 'long_description')  return csvEscape(p.long || '');
+      if (col === 'notes')             return csvEscape((p.notes || []).join('|'));
+      return csvEscape(p[col] != null ? p[col] : '');
+    }).join(','));
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }); // BOM for Excel
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `kugon-products-${stamp}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast(`Exported ${products.length} products`, 'success');
+  });
+
+  // IMPORT — trigger file picker
+  $('importCsvBtn').addEventListener('click', () => {
+    $('csvFileInput').click();
+  });
+
+  // IMPORT — handle picked file
+  $('csvFileInput').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    e.target.value = '';
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const text = String(reader.result || '').replace(/^\ufeff/, ''); // strip BOM
+        const rows = parseCsv(text);
+        if (rows.length < 2) throw new Error('CSV is empty or has no rows');
+
+        // Read header row and map to our columns
+        const header = rows[0].map(h => h.trim().toLowerCase());
+        const idx = {};
+        CSV_COLUMNS.forEach(col => { idx[col] = header.indexOf(col); });
+        if (idx.id < 0 || idx.name < 0) {
+          throw new Error('CSV must contain at least "id" and "name" columns');
+        }
+
+        // Build product records from data rows
+        const records = [];
+        for (let r = 1; r < rows.length; r++) {
+          const row = rows[r];
+          if (row.every(c => c.trim() === '')) continue; // skip blank lines
+          const get = col => idx[col] >= 0 ? (row[idx[col]] || '').trim() : '';
+          const id = get('id') || ('p' + Date.now().toString(36) + r);
+          records.push({
+            id,
+            name: get('name'),
+            category: get('category') || '',
+            price: parseFloat(get('price')) || 0,
+            desc: get('description'),
+            long: get('long_description'),
+            notes: get('notes') ? get('notes').split('|').map(s => s.trim()).filter(Boolean) : [],
+            serving: get('serving'),
+            caffeine: get('caffeine'),
+            color: get('color') || '#caa169',
+            image: get('image'),
+          });
+        }
+        if (records.length === 0) throw new Error('No data rows found in CSV');
+
+        if (!confirm(
+          `Import ${records.length} product${records.length > 1 ? 's' : ''} from CSV?\n\n` +
+          `This will upsert by ID — existing products with matching IDs will be overwritten. ` +
+          `Products in Supabase that aren't in the CSV will be left alone.\n\n` +
+          `Click OK to continue.`
+        )) return;
+
+        // Upsert each to Supabase, then refresh local state
+        toast(`Importing ${records.length} products…`);
+        let ok = 0, fail = 0;
+        const errors = [];
+        for (const p of records) {
+          try {
+            await dbSaveProduct(p);
+            ok++;
+            // Update local state too
+            const i = state.products.findIndex(x => x.id === p.id);
+            if (i >= 0) state.products[i] = p;
+            else state.products.push(p);
+          } catch (err) {
+            fail++;
+            errors.push(`${p.id}: ${err.message}`);
+          }
+        }
+        saveData(false);
+        renderProductList();
+        renderCategoryPills();
+
+        if (fail === 0) {
+          toast(`✓ Imported ${ok} products`, 'success');
+        } else {
+          console.error('Import errors:', errors);
+          toast(`Imported ${ok}, failed ${fail}. Check console for details.`, 'error');
+        }
+      } catch (err) {
+        console.error('CSV import failed:', err);
+        toast('Import failed: ' + err.message, 'error');
+      }
+    };
+    reader.onerror = () => toast('Could not read file', 'error');
+    reader.readAsText(file);
+  });
 
   /* =========================================================
      IMAGE UPLOAD — shared helpers (used by Product, Profile, Team)
@@ -1931,18 +2323,6 @@
     if (m) return `https://lh3.googleusercontent.com/d/${m[1]}=w1200`;
     // Already a direct URL, base64, or relative path — return unchanged
     return url;
-  }
-
-  // Upload a base64 image to the Google Drive folder via Apps Script,
-  // returns the lh3 direct-image URL.
-  async function uploadToDrive(base64DataUrl, filename, mimeType) {
-    const r = await callSheets('uploadImage', {
-      base64: base64DataUrl,
-      filename: filename || ('image_' + Date.now() + '.jpg'),
-      mimeType: mimeType || 'image/jpeg',
-    });
-    if (!r.ok || !r.url) throw new Error(r.error || 'Upload returned no URL');
-    return r.url;
   }
 
   function resizeImageFile(file, maxDim, quality) {
@@ -2005,19 +2385,9 @@
     async function handleFile(file) {
       try {
         const dataUrl = await resizeImageFile(file, cfg.maxDim || 600, cfg.quality || 0.82);
-        // Show base64 preview immediately so user gets instant feedback
+        // Show base64 preview locally. Actual Drive upload happens on Save Changes.
         show(dataUrl);
-        toast('Uploading to Drive…');
-        // Upload to Drive in background, then swap the source to the Drive URL
-        try {
-          const driveUrl = await uploadToDrive(dataUrl, file.name || 'image.jpg', file.type || 'image/jpeg');
-          show(driveUrl);
-          toast('✓ Uploaded to Drive', 'success');
-        } catch (uploadErr) {
-          // Upload failed — keep the base64 fallback that's already showing
-          console.warn('Drive upload failed:', uploadErr);
-          toast('Drive upload failed, keeping local copy: ' + uploadErr.message, 'error');
-        }
+        toast('Image attached — click Save Changes to upload to Drive', 'success');
       } catch (err) {
         toast(err.message, 'error');
       }
@@ -2106,33 +2476,60 @@
     $('productModal').classList.add('is-open');
   }
 
-  $('productForm').addEventListener('submit', e => {
+  $('productForm').addEventListener('submit', async e => {
     e.preventDefault();
-    const fd = new FormData(e.target);
-    const id = fd.get('id') || ('p' + Date.now().toString(36));
-    const data = {
-      id,
-      name: fd.get('name').trim(),
-      category: fd.get('category'),
-      price: parseInt(fd.get('price'), 10),
-      desc: fd.get('desc').trim(),
-      long: fd.get('long').trim(),
-      notes: fd.get('notes').split(',').map(s => s.trim()).filter(Boolean),
-      serving: fd.get('serving').trim(),
-      caffeine: fd.get('caffeine').trim(),
-      color: fd.get('color').trim() || '#caa169',
-    };
-    if (currentImageData) data.image = currentImageData;
-    const idx = state.products.findIndex(p => p.id === id);
-    if (idx >= 0) state.products[idx] = data;
-    else state.products.push(data);
-    renderProductList();
-    renderCategoryPills();
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalLabel = submitBtn ? submitBtn.textContent : '';
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Saving…'; }
+
     try {
+      const fd = new FormData(e.target);
+      const id = fd.get('id') || ('p' + Date.now().toString(36));
+      const data = {
+        id,
+        name: fd.get('name').trim(),
+        category: fd.get('category'),
+        price: parseInt(fd.get('price'), 10),
+        desc: fd.get('desc').trim(),
+        long: fd.get('long').trim(),
+        notes: fd.get('notes').split(',').map(s => s.trim()).filter(Boolean),
+        serving: fd.get('serving').trim(),
+        caffeine: fd.get('caffeine').trim(),
+        color: fd.get('color').trim() || '#caa169',
+      };
+
+      // Handle image:
+      // 1) If currentImageData starts with "data:" → upload to product-images bucket, get URL
+      // 2) Otherwise it's already a URL → use as-is
+      // 3) If empty → leave blank (product card shows initials placeholder)
+      if (currentImageData) {
+        if (currentImageData.startsWith('data:')) {
+          if (submitBtn) submitBtn.textContent = 'Uploading image…';
+          data.image = await dbUploadImage(currentImageData, 'product-images', data.name);
+        } else {
+          data.image = currentImageData;
+        }
+      } else {
+        data.image = '';
+      }
+
+      if (submitBtn) submitBtn.textContent = 'Saving to database…';
+      await dbSaveProduct(data);
+
+      // Update local state
+      const idx = state.products.findIndex(p => p.id === id);
+      if (idx >= 0) state.products[idx] = data;
+      else state.products.push(data);
+      renderProductList();
+      renderCategoryPills();
       saveData();
       $('productModal').classList.remove('is-open');
+      toast(idx >= 0 ? 'Product updated ✓' : 'Product added ✓', 'success');
     } catch (err) {
-      toast('Storage full — try a smaller image or fewer products', 'error');
+      console.error('Product save failed:', err);
+      toast('Save failed: ' + err.message, 'error');
+    } finally {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
     }
   });
 
@@ -2193,369 +2590,52 @@
   });
 
   /* =========================================================
-     GOOGLE SHEETS DATABASE
+     SUPABASE — Refresh data (replaces Sheets sync UI)
   ========================================================= */
-  const APPS_SCRIPT_CODE = `// ============================================================
-// KUGON CAFE — Google Sheets API (Apps Script Web App)
-// ============================================================
-// 1. Open your sheet → Extensions → Apps Script
-// 2. Paste this whole file. Save (Ctrl/Cmd + S).
-// 3. Deploy → New deployment → Web app
-//    Execute as: Me · Access: Anyone
-// 4. Copy the Web App URL and paste into admin.html
-// ============================================================
 
-const SHEET_SCHEMAS = {
-  'Product':            ['id','name','category','price','desc','long','notes','serving','caffeine','color','image'],
-  'Contact & Location': ['key','value'],
-  'Links':              ['key','value'],
-  'Sales':              ['date','productId','productName','quantity','amount','totalAmount'],
-  'Employee':           ['id','username','name','password','createdAt','image'],
-  'Categories':         ['name'],
-  'Admin':              ['id','username','name','password','createdAt','image'],
-  'Team':               ['id','name','role','image'],
-};
-
-function doGet(e)  { return route(e, 'GET'); }
-function doPost(e) { return route(e, 'POST'); }
-
-function route(e, method) {
-  try {
-    let action = (e.parameter && e.parameter.action) || null;
-    let body = null;
-    if (method === 'POST' && e.postData && e.postData.contents) {
-      body = JSON.parse(e.postData.contents);
-      action = action || body.action;
-    }
-    let result;
-    if (action === 'ping')    result = { ok: true, message: 'connected', time: new Date().toISOString() };
-    else if (action === 'getAll')  result = getAll();
-    else if (action === 'push')    result = pushAll(body && body.data);
-    else if (action === 'init')    result = initSchema();
-    else if (action === 'uploadImage') result = uploadImage(body && body.data);
-    else                           result = { ok: false, error: 'Unknown action: ' + action };
-    return json(result);
-  } catch (err) {
-    return json({ ok: false, error: String(err && err.message || err) });
-  }
-}
-
-function json(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function ss() { return SpreadsheetApp.getActiveSpreadsheet(); }
-
-function ensureSheet(name) {
-  const s = ss().getSheetByName(name);
-  if (s) return s;
-  const created = ss().insertSheet(name);
-  const headers = SHEET_SCHEMAS[name];
-  if (headers) {
-    created.getRange(1, 1, 1, headers.length).setValues([headers])
-      .setFontWeight('bold').setBackground('#fef3c7');
-  }
-  return created;
-}
-
-function readSheet(name) {
-  const sheet = ensureSheet(name);
-  const data = sheet.getDataRange().getValues();
-  if (data.length < 2) return [];
-  const headers = data[0];
-  return data.slice(1)
-    .map(row => {
-      const obj = {};
-      headers.forEach((h, i) => { obj[h] = row[i]; });
-      return obj;
-    })
-    .filter(row => Object.values(row).some(v => v !== '' && v !== null));
-}
-
-function writeSheet(name, rows) {
-  const sheet = ensureSheet(name);
-  const headers = SHEET_SCHEMAS[name];
-  sheet.clear();
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers])
-    .setFontWeight('bold').setBackground('#fef3c7');
-  if (rows && rows.length > 0) {
-    const matrix = rows.map(r => headers.map(h => r[h] !== undefined ? r[h] : ''));
-    sheet.getRange(2, 1, matrix.length, headers.length).setValues(matrix);
-  }
-}
-
-function initSchema() {
-  Object.keys(SHEET_SCHEMAS).forEach(name => ensureSheet(name));
-  return { ok: true, message: 'Initialized ' + Object.keys(SHEET_SCHEMAS).length + ' tabs' };
-}
-
-function getAll() {
-  const products = readSheet('Product').map(r => ({
-    id: String(r.id), name: r.name, category: r.category, price: Number(r.price) || 0,
-    desc: r.desc, long: r.long,
-    notes: r.notes ? String(r.notes).split(',').map(s => s.trim()).filter(Boolean) : [],
-    serving: r.serving, caffeine: r.caffeine, color: r.color, image: r.image || ''
-  }));
-
-  const contact = {};
-  readSheet('Contact & Location').forEach(r => { if (r.key) contact[r.key] = r.value; });
-  ['mapLat','mapLng','mapZoom'].forEach(k => { if (contact[k] !== undefined) contact[k] = Number(contact[k]); });
-
-  const orderLinks = {};
-  readSheet('Links').forEach(r => { if (r.key) orderLinks[r.key] = r.value; });
-
-  const sales = readSheet('Sales').map(r => ({
-    id: 's' + String(r.date) + '_' + String(r.productId) + '_' + Math.random().toString(36).slice(2,7),
-    date: String(r.date),
-    productId: String(r.productId || ''),
-    productName: String(r.productName || ''),
-    quantity: Number(r.quantity) || 0,
-    amount: Number(r.amount) || 0,
-    totalAmount: Number(r.totalAmount) || 0,
-  }));
-
-  const employees = readSheet('Employee').map(r => ({
-    id: String(r.id), username: r.username, name: r.name,
-    password: r.password, createdAt: String(r.createdAt || ''),
-    image: r.image || ''
-  }));
-
-  const admins = readSheet('Admin').map(r => ({
-    id: String(r.id), username: r.username, name: r.name,
-    password: r.password, createdAt: String(r.createdAt || ''),
-    image: r.image || ''
-  }));
-
-  const team = readSheet('Team').map(r => ({
-    id: String(r.id), name: r.name, role: r.role, image: r.image || ''
-  }));
-
-  const categories = readSheet('Categories').map(r => r.name).filter(Boolean);
-
-  return {
-    ok: true,
-    data: { products, contact, orderLinks, sales, employees, admins, team, categories }
-  };
-}
-
-function pushAll(data) {
-  if (!data) return { ok: false, error: 'No data sent' };
-
-  if (data.products) {
-    writeSheet('Product', data.products.map(p => ({
-      ...p, notes: Array.isArray(p.notes) ? p.notes.join(', ') : (p.notes || '')
-    })));
-  }
-  if (data.contact) {
-    writeSheet('Contact & Location',
-      Object.entries(data.contact).map(([k, v]) => ({ key: k, value: String(v == null ? '' : v) }))
-    );
-  }
-  if (data.orderLinks) {
-    writeSheet('Links',
-      Object.entries(data.orderLinks).map(([k, v]) => ({ key: k, value: String(v == null ? '' : v) }))
-    );
-  }
-  if (data.sales) {
-    writeSheet('Sales', data.sales.map(s => ({
-      date: s.date,
-      productId: s.productId || '',
-      productName: s.productName || '',
-      quantity: s.quantity || 0,
-      amount: s.amount || 0,
-      totalAmount: s.totalAmount || ((s.amount || 0) * (s.quantity || 0)),
-    })));
-  }
-
-  if (data.employees) {
-    writeSheet('Employee', data.employees.map(e => ({
-      id: e.id, username: e.username, name: e.name,
-      password: e.password, createdAt: e.createdAt, image: e.image || ''
-    })));
-  }
-  if (data.admins) {
-    writeSheet('Admin', data.admins.map(a => ({
-      id: a.id, username: a.username, name: a.name,
-      password: a.password, createdAt: a.createdAt, image: a.image || ''
-    })));
-  }
-  if (data.team) {
-    writeSheet('Team', data.team.map(t => ({
-      id: t.id, name: t.name, role: t.role, image: t.image || ''
-    })));
-  }
-  if (data.categories) {
-    writeSheet('Categories', data.categories.map(c => ({ name: c })));
-  }
-  return { ok: true, message: 'Synced ' + new Date().toISOString() };
-}
-
-function safeParse(s, fallback) {
-  try { return JSON.parse(s); } catch { return fallback; }
-}
-
-// ============================================================
-// IMAGE UPLOAD TO GOOGLE DRIVE
-// Saves images to the Kugon Cafe Images folder, returns a public URL.
-// ============================================================
-const DRIVE_FOLDER_ID = '1htDc8Kw3AMDHsoVKMpvpbCCCusv6aqJb';
-
-function uploadImage(data) {
-  if (!data || !data.base64) return { ok: false, error: 'Missing image data' };
-  try {
-    const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
-    const base64 = data.base64.indexOf(',') >= 0 ? data.base64.split(',')[1] : data.base64;
-    const decoded = Utilities.base64Decode(base64);
-    const mime = data.mimeType || 'image/jpeg';
-    const ext = mime === 'image/png' ? 'png' : 'jpg';
-    const fname = (data.filename || ('image_' + Date.now() + '.' + ext))
-      .replace(/[^a-zA-Z0-9._-]/g, '_');
-    const blob = Utilities.newBlob(decoded, mime, fname);
-    const file = folder.createFile(blob);
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    const fileId = file.getId();
-    return {
-      ok: true,
-      url: 'https://lh3.googleusercontent.com/d/' + fileId + '=w1200',
-      fileId: fileId,
-      filename: fname,
-    };
-  } catch (err) {
-    return { ok: false, error: 'Upload failed: ' + (err.message || err) };
-  }
-}
-`;
-
-  // Show the script in the setup section
-  function injectAppsScriptCode() {
-    const el = $('appsScriptCode');
-    if (el) el.textContent = APPS_SCRIPT_CODE;
-  }
-
-  // Copy script button
-  $('copyScriptBtn').addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(APPS_SCRIPT_CODE);
-      toast('Script copied — paste into Apps Script editor', 'success');
-    } catch {
-      // Fallback: select the text
-      const range = document.createRange();
-      range.selectNode($('appsScriptCode'));
-      window.getSelection().removeAllRanges();
-      window.getSelection().addRange(range);
-      toast('Script selected — press Ctrl/Cmd+C to copy');
-    }
-  });
-
-  function setSheetsStatus(kind, msg, time) {
+  // Tiny helpers for the status pill in the Supabase tab.
+  // States: 'loading' (yellow), 'ok' (green), 'err' (red), '' (idle)
+  function setSheetsStatus(state, text, subtext) {
     const el = $('sheetsStatus');
-    el.classList.remove('is-ok', 'is-err', 'is-loading');
-    if (kind === 'ok') el.classList.add('is-ok');
-    else if (kind === 'err') el.classList.add('is-err');
-    else if (kind === 'loading') el.classList.add('is-loading');
-    el.innerHTML = `
-      <span class="sheets-status__dot"></span>
-      <span class="sheets-status__msg">${escapeHtml(msg)}</span>
-      ${time ? `<span class="sheets-status__time">${time}</span>` : ''}`;
+    if (!el) return;
+    const color = state === 'ok' ? '#22c55e' :
+                  state === 'err' ? '#ef4444' :
+                  state === 'loading' ? '#facc15' : 'var(--ink-soft)';
+    const sub = subtext ? `<div style="font-size:.8rem;opacity:.75;margin-top:2px">${escapeHtml(subtext)}</div>` : '';
+    el.innerHTML = text
+      ? `<div style="display:flex;align-items:flex-start;gap:10px;background:var(--bg);padding:10px 14px;border-radius:var(--radius);border:1px solid var(--line)">
+           <span style="width:8px;height:8px;border-radius:50%;background:${color};margin-top:6px;flex-shrink:0"></span>
+           <div><div>${escapeHtml(text)}</div>${sub}</div>
+         </div>`
+      : '';
   }
-
   function refreshSheetsStatus() {
-    const last = state.sheets.lastPush || state.sheets.lastPull;
-    setSheetsStatus('ok', 'Connected (URL hardcoded in admin.html)',
-      last ? 'Last sync: ' + new Date(last).toLocaleString() : 'Click Test Connection to verify');
-  }
-
-  // POSTing to Apps Script: must use text/plain to avoid CORS preflight
-  async function callSheets(action, payload) {
-    const url = APPS_SCRIPT_URL;
-    if (!url) throw new Error('Apps Script URL not set');
-    let res;
-    if (action === 'getAll' || action === 'ping') {
-      // Cache-bust GET requests so we always get fresh data
-      res = await fetch(`${url}?action=${action}&t=${Date.now()}`, {
-        method: 'GET',
-        cache: 'no-store',
-      });
+    // Show last sync time if available
+    if (state.sheets && state.sheets.lastPull) {
+      const t = new Date(state.sheets.lastPull);
+      setSheetsStatus('ok', 'Synced from Supabase', t.toLocaleString());
     } else {
-      res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action, data: payload }),
-        redirect: 'follow',
-        cache: 'no-store',
-      });
-    }
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const json = await res.json();
-    if (json.ok === false) throw new Error(json.error || 'Unknown error');
-    return json;
-  }
-
-  $('testSheetsBtn').addEventListener('click', async () => {
-    setSheetsStatus('loading', 'Testing connection…');
-    try {
-      const r = await callSheets('ping');
-      setSheetsStatus('ok', 'Connected ✓', 'Server time: ' + r.time);
-      toast('Connected to Apps Script', 'success');
-    } catch (err) {
-      setSheetsStatus('err', 'Failed: ' + err.message);
-      toast('Connection failed: ' + err.message, 'error');
-    }
-  });
-
-  $('initSheetsBtn').addEventListener('click', async () => {
-    if (!confirm('This will create/verify the 7 tabs (Product, Contact & Location, Links, Sales, Inventory, Employee, Categories) in your sheet. Continue?')) return;
-    setSheetsStatus('loading', 'Initializing sheet schema…');
-    try {
-      const r = await callSheets('init');
-      setSheetsStatus('ok', r.message || 'Schema initialized');
-      toast('Sheet headers set up — now click "Push to Sheet"', 'success');
-    } catch (err) {
-      setSheetsStatus('err', 'Init failed: ' + err.message);
-      toast('Init failed: ' + err.message, 'error');
-    }
-  });
-
-  $('pushSheetsBtn').addEventListener('click', async () => {
-    await pushToSheets(true);
-  });
-
-  async function pushToSheets(showToast) {
-    if (showToast) setSheetsStatus('loading', 'Pushing all data to sheet…');
-    try {
-      const r = await callSheets('push', state);
-      state.sheets.lastPush = new Date().toISOString();
-      saveData(false); // save without toast
-      setSheetsStatus('ok', 'Pushed to sheet ✓', new Date().toLocaleString());
-      if (showToast) toast('All data pushed to Google Sheet', 'success');
-    } catch (err) {
-      setSheetsStatus('err', 'Push failed: ' + err.message);
-      if (showToast) toast('Push failed: ' + err.message, 'error');
+      setSheetsStatus('', '');
     }
   }
 
-  $('pullSheetsBtn').addEventListener('click', async () => {
-    if (!confirm('This will replace your current data with what is on the sheet. Continue?')) return;
-    setSheetsStatus('loading', 'Pulling data from sheet…');
+  $('refreshDataBtn')?.addEventListener('click', async () => {
+    setSheetsStatus('loading', 'Refreshing from Supabase…');
     try {
-      const r = await callSheets('getAll');
-      const remote = r.data || {};
+      const r = await dbLoadAll();
       state = {
         ...state,
-        products: remote.products && remote.products.length ? remote.products : state.products,
-        contact: { ...state.contact, ...(remote.contact || {}) },
-        orderLinks: { ...state.orderLinks, ...(remote.orderLinks || {}) },
-        todaysPour: { ...state.todaysPour, ...(remote.todaysPour || {}) },
-        sales: remote.sales || [],
-        employees: remote.employees || [],
-        admins: (remote.admins && remote.admins.length) ? remote.admins : state.admins,
-        team: (remote.team && remote.team.length) ? remote.team : state.team,
-        categories: remote.categories && remote.categories.length ? remote.categories : state.categories,
+        products: (r.products && r.products.length) ? r.products : state.products,
+        contact: { ...state.contact, ...r.contact },
+        orderLinks: { ...state.orderLinks, ...r.orderLinks },
+        todaysPour: { ...state.todaysPour, ...r.todaysPour },
+        admins: (r.admins && r.admins.length) ? r.admins : state.admins,
+        employees: (r.employees && r.employees.length) ? r.employees : state.employees,
+        team: (r.team && r.team.length) ? r.team : state.team,
+        categories: (r.categories && r.categories.length) ? r.categories : state.categories,
       };
       state.sheets.lastPull = new Date().toISOString();
       saveData(false);
-      // Refresh everything in UI
       populateForms();
       renderCategoryPills();
       renderProductList();
@@ -2564,11 +2644,12 @@ function uploadImage(data) {
       renderSales();
       renderTodaysPour();
       refreshJsonPreview();
-      setSheetsStatus('ok', 'Pulled from sheet ✓', new Date().toLocaleString());
-      toast('Data pulled from sheet', 'success');
+      setSheetsStatus('ok', '✓ Refreshed', new Date().toLocaleString());
+      toast('Data refreshed from Supabase ✓', 'success');
     } catch (err) {
-      setSheetsStatus('err', 'Pull failed: ' + err.message);
-      toast('Pull failed: ' + err.message, 'error');
+      console.error('Refresh failed:', err);
+      setSheetsStatus('err', 'Refresh failed: ' + err.message);
+      toast('Refresh failed: ' + err.message, 'error');
     }
   });
 
@@ -2608,15 +2689,41 @@ function uploadImage(data) {
     pourImageZone.show(currentPourImage);
   }
 
-  $('savePourBtn').addEventListener('click', () => {
-    state.todaysPour = {
-      name: $('f_pourName').value.trim(),
-      notes: $('f_pourNotes').value.trim(),
-      price: $('f_pourPrice').value.trim(),
-      image: currentPourImage || '',
-    };
-    saveData({ push: true });
-    toast("Today's Pour saved & pushed", 'success');
+  $('savePourBtn').addEventListener('click', async () => {
+    const btn = $('savePourBtn');
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    try {
+      let imageUrl = currentPourImage || '';
+      // If it's a base64 data URL, upload to the images bucket first
+      if (imageUrl && imageUrl.startsWith('data:')) {
+        btn.textContent = 'Uploading image…';
+        imageUrl = await dbUploadImage(imageUrl, 'images', 'todays-pour');
+      }
+
+      const tp = {
+        name: $('f_pourName').value.trim(),
+        notes: $('f_pourNotes').value.trim(),
+        price: $('f_pourPrice').value.trim(),
+        image: imageUrl,
+      };
+      btn.textContent = 'Saving…';
+      await dbSaveSetting('todaysPour', tp);
+
+      state.todaysPour = tp;
+      currentPourImage = imageUrl;
+      pourImageZone && pourImageZone.show(imageUrl);
+      saveData();
+      toast("Today's Pour updated on live site ✓", 'success');
+    } catch (err) {
+      console.error('Pour save failed:', err);
+      toast('Save failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
   });
 
   /* =========================================================
@@ -3117,8 +3224,8 @@ function uploadImage(data) {
       amount,
       totalAmount: quantity * amount,
     });
-    saveData({ push: true });   // pushes to sheet too — see saveData changes below
-    toast('Sale recorded', 'success');
+    saveData();   // local only — Save Changes will push
+    toast('Sale recorded locally', 'success');
     // Reset form for next entry, default date back to today
     $('f_saleDate').value = todayStr();
     $('f_saleProductSearch').value = '';
@@ -3248,7 +3355,7 @@ function uploadImage(data) {
     const s = state.sales.find(x => x.id === delId);
     if (s && confirm(`Delete this sale (${s.productName} × ${s.quantity})?`)) {
       state.sales = state.sales.filter(x => x.id !== delId);
-      saveData({ push: true });
+      saveData();
       renderSalesView();
       toast('Sale deleted');
     }
@@ -3301,34 +3408,28 @@ function uploadImage(data) {
   async function adminInitialSync() {
     document.body.dataset.syncing = 'true';
     setLoginEnabled(false);
-    makeSyncBanner('Syncing…');
+    makeSyncBanner('Loading from Supabase…');
 
     try {
-      const url = `${APPS_SCRIPT_URL}?action=getAll&t=${Date.now()}`;
-      const res = await fetch(url, { method: 'GET', cache: 'no-store' });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const json = await res.json();
-      if (!json.ok || !json.data) throw new Error(json.error || 'No data');
-
-      const r = json.data;
+      const r = await dbLoadAll();
       state = {
         ...state,
         products: (r.products && r.products.length) ? r.products : state.products,
-        contact: { ...state.contact, ...(r.contact || {}) },
-        orderLinks: { ...state.orderLinks, ...(r.orderLinks || {}) },
-        todaysPour: { ...state.todaysPour, ...(r.todaysPour || {}) },
-        sales: r.sales || state.sales,
-        employees: r.employees || state.employees,
+        contact: { ...state.contact, ...r.contact },
+        orderLinks: { ...state.orderLinks, ...r.orderLinks },
+        todaysPour: { ...state.todaysPour, ...r.todaysPour },
+        sales: state.sales,            // sales still local — Session C
+        employees: (r.employees && r.employees.length) ? r.employees : state.employees,
         admins: (r.admins && r.admins.length) ? r.admins : state.admins,
         team: (r.team && r.team.length) ? r.team : state.team,
         categories: (r.categories && r.categories.length) ? r.categories : state.categories,
       };
       state.sheets.lastPull = new Date().toISOString();
       localStorage.setItem('kugon_data', JSON.stringify(state));
-      finishSyncBanner('ok', '✓ Ready');
+      finishSyncBanner('ok', `✓ ${r.products.length} products loaded`);
     } catch (err) {
       console.warn('Initial sync failed:', err);
-      finishSyncBanner('err', '⚠ Using local data');
+      finishSyncBanner('err', '⚠ Sync failed: ' + (err.message || err));
     } finally {
       document.body.removeAttribute('data-syncing');
       setLoginEnabled(true);

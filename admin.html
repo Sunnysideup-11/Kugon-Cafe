@@ -63,6 +63,8 @@
     .admin-panel {
       background: var(--paper); border: 1px solid var(--line);
       border-radius: var(--radius-lg); padding: 32px;
+      min-width: 0;       /* allow grid child to shrink instead of forcing parent wider */
+      overflow: hidden;   /* clip any rogue content (e.g. long monospace strings) */
     }
     .admin-panel h2 {
       font-family: var(--font-display); font-size: 1.6rem; font-weight: 600;
@@ -378,8 +380,14 @@
       background: #1a1208; color: #e8c89a;
       border-radius: var(--radius); padding: 16px;
       font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-      font-size: .8rem; max-height: 320px; overflow: auto;
-      white-space: pre; margin-top: 12px;
+      font-size: .8rem; max-height: 320px;
+      overflow-y: auto; overflow-x: hidden;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      margin-top: 12px;
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
     .image-dropzone {

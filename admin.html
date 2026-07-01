@@ -17,23 +17,6 @@
     /* Fix: [hidden] attribute must beat CSS display rules */
     [hidden] { display: none !important; }
 
-    /* Migration-in-progress banner shown at top of unmigrated panels */
-    .migration-banner {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      background: color-mix(in srgb, #facc15 14%, var(--bg));
-      border: 1px solid color-mix(in srgb, #facc15 35%, var(--line));
-      border-radius: var(--radius);
-      padding: 14px 18px;
-      margin: 0 0 24px;
-      font-size: .9rem;
-      line-height: 1.45;
-    }
-    .migration-banner__icon { font-size: 1.3rem; flex-shrink: 0; }
-    .migration-banner__title { font-weight: 600; margin-bottom: 2px; }
-    .migration-banner__hint { color: var(--ink-soft); }
-
     /* Admin-only overrides */
     .admin-wrap { padding: 32px 0 80px; }
     .admin-head {
@@ -367,33 +350,6 @@
       gap: 6px;
     }
 
-    .drive-card {
-      background: var(--bg); border: 1px dashed var(--line-2);
-      border-radius: var(--radius); padding: 18px; margin-bottom: 18px;
-    }
-    .drive-card h4 {
-      font-family: var(--font-display); margin: 0 0 6px; font-size: 1.05rem;
-    }
-    .drive-card ol { margin: 8px 0 0 18px; padding: 0; font-size: .9rem; line-height: 1.7; }
-    .drive-card code {
-      background: var(--paper); padding: 2px 6px; border-radius: 4px;
-      font-size: .85em; color: var(--accent);
-    }
-
-    .json-preview {
-      background: #1a1208; color: #e8c89a;
-      border-radius: var(--radius); padding: 16px;
-      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-      font-size: .8rem; max-height: 320px;
-      overflow-y: auto; overflow-x: hidden;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-      margin-top: 12px;
-      max-width: 100%;
-      box-sizing: border-box;
-    }
-
     .image-dropzone {
       border: 2px dashed var(--line-2);
       border-radius: var(--radius);
@@ -405,21 +361,35 @@
     }
     .image-dropzone:hover { border-color: var(--accent); background: var(--paper); }
     .image-dropzone.is-dragover { border-color: var(--accent); background: var(--paper); }
-    .image-url-input {
-      width: 100%;
-      padding: 10px 14px;
-      border-radius: var(--radius);
-      border: 1px solid var(--line);
-      background: var(--paper);
-      font-size: .88rem;
-      font-family: 'SF Mono', monospace;
-      color: var(--ink);
-      margin-bottom: 4px;
+    /* Image URL fields are kept in the DOM for internal syncing but hidden from view */
+    .image-url-input { display: none !important; }
+
+    /* Website Insights */
+    .insights-grid { display: flex; gap: 14px; margin-top: 12px; flex-wrap: wrap; }
+    .insight-card {
+      flex: 1; min-width: 140px; background: var(--bg);
+      border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px;
     }
-    .image-url-input:focus {
-      outline: 0; border-color: var(--accent);
-      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+    .insight-card__num { font-family: var(--font-display); font-size: 2rem; font-weight: 700; color: var(--accent); }
+    .insight-card__label { color: var(--ink-soft); font-size: .85rem; margin-top: 2px; }
+    .top-items { margin-top: 8px; }
+    .top-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px;
+      background: var(--paper); margin-bottom: 8px; font-size: .9rem;
     }
+    .top-item__count { font-weight: 700; color: var(--accent); }
+
+    /* "Session expired" notice on the login card */
+    .session-expired {
+      display: flex; flex-direction: column; gap: 2px;
+      background: color-mix(in srgb, var(--danger, #b54520) 12%, var(--bg));
+      border: 1px solid color-mix(in srgb, var(--danger, #b54520) 40%, var(--line));
+      color: var(--ink); border-radius: var(--radius);
+      padding: 12px 16px; margin-bottom: 16px; font-size: .9rem;
+    }
+    .session-expired strong { color: var(--danger, #b54520); }
+    .session-expired span { color: var(--ink-soft); }
     #imagePreview {
       max-width: 100%;
       max-height: 220px;
@@ -874,7 +844,6 @@
         align-items: stretch;
       }
       .save-bar .btn { width: 100%; justify-content: center; }
-      .migration-banner { padding: 12px 14px; font-size: .85rem; }
       /* Tables — let users scroll horizontally instead of squishing */
       .prod-table, .emp-table, .sales-table { font-size: .8rem; min-width: 540px; }
       /* Wrap raw tables that aren't already in a scroll container */
@@ -918,6 +887,10 @@
     <!-- LOGIN SCREEN -->
     <section class="login-wrap" id="loginScreen">
       <div class="login-card">
+        <div class="session-expired" id="sessionExpiredNotice" hidden>
+          <strong>Session expired</strong>
+          <span>You were signed out due to inactivity. Please log in again.</span>
+        </div>
         <h2>Sign in</h2>
         <p class="muted">Admin or employee login. Need an account? Ask the admin.</p>
         <form id="loginForm" style="display:flex;flex-direction:column;gap:14px;margin-top:18px">
@@ -940,16 +913,6 @@
         <h1>Kugon Cafe · <em>Admin</em></h1>
         <div class="admin-head__actions">
           <span id="userBadge" class="user-badge"></span>
-          <button class="btn btn--ghost btn--sm" id="exportBtn" data-role-admin>
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-            Export JSON
-          </button>
-          <button class="btn btn--ghost btn--sm" id="importBtn" data-role-admin>
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-            Import JSON
-          </button>
-          <input type="file" id="importFile" accept="application/json" hidden />
-          <button class="btn btn--ghost btn--sm" id="resetBtn" data-role-admin>Reset All</button>
           <button class="btn btn--ghost btn--sm" id="logoutBtn">Log Out</button>
         </div>
       </div>
@@ -978,7 +941,7 @@
           </button>
           <button class="admin-nav__item" data-tab="drive" data-role-admin>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 11v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6"/></svg>
-            Supabase
+            Database
           </button>
         </aside>
 
@@ -1000,8 +963,7 @@
             <form id="profileForm" style="display:flex;flex-direction:column;gap:14px;max-width:520px">
               <div class="field">
                 <label>Profile photo</label>
-                <input type="text" id="f_profileImageUrl" class="image-url-input" placeholder="🔗 Paste Google Drive share URL or image URL" />
-                <div class="field__hint" style="margin-top:-6px">Drive URL recommended. Or upload below to store as base64.</div>
+                <input type="text" id="f_profileImageUrl" class="image-url-input" placeholder="Image URL" hidden />
                 <div class="image-dropzone" id="profileDropzone">
                   <div id="profilePreviewWrap" hidden>
                     <img id="profilePreview" alt="Preview" />
@@ -1153,8 +1115,8 @@
               </div>
               <div class="field" style="margin-top:14px">
                 <label>Image (optional)</label>
-                <input type="text" id="f_pourImageUrl" class="image-url-input" placeholder="🔗 Paste Google Drive share URL or image URL" />
-                <div class="field__hint" style="margin-top:-6px">Drive URL recommended. Leave blank to show the default coffee-cup illustration.</div>
+                <input type="text" id="f_pourImageUrl" class="image-url-input" placeholder="Image URL" hidden />
+                <div class="field__hint" style="margin-top:-6px">Leave blank to show the default coffee-cup illustration.</div>
                 <div class="image-dropzone" id="pourDropzone">
                   <div id="pourPreviewWrap" hidden>
                     <img id="pourPreview" alt="Preview" />
@@ -1195,10 +1157,10 @@
             <div id="teamList"></div>
           </div>
 
-          <!-- TAB: SUPABASE (database management) -->
+          <!-- TAB: DATABASE + INSIGHTS -->
           <div class="admin-panel" data-panel="drive" hidden>
-            <h2>Supabase Database</h2>
-            <p class="help">Your Kugon Cafe data is stored in a Supabase Postgres database. Changes you make in the Products section save directly there and appear on the live site immediately.</p>
+            <h2>Database</h2>
+            <p class="help">Your Kugon Cafe data lives in a Supabase Postgres database. Edits save there directly and appear on the live site immediately.</p>
 
             <!-- Connection status -->
             <div class="sheets-status" id="sheetsStatus"></div>
@@ -1225,39 +1187,16 @@
               </a>
             </div>
 
-            <div class="field" style="margin-top:14px;background:var(--bg);padding:14px 18px;border-radius:var(--radius);border:1px solid var(--line)">
-              <div style="display:flex;align-items:center;gap:10px">
-                <span style="font-size:1.2rem">ℹ️</span>
-                <div>
-                  <strong style="font-size:.92rem">How saving works now</strong>
-                  <div class="field__hint" style="margin:2px 0 0">
-                    <strong>Products</strong>, <strong>Today's Pour</strong>, <strong>Team</strong>, <strong>Categories</strong> and <strong>Profile</strong> save directly to Supabase when you click their respective Save buttons — changes are live immediately. <strong>Contact</strong> and <strong>Order Links</strong> save through the main "Save Changes" button. Sales and staff are handled in Loyverse (POS), not here.
-                  </div>
-                </div>
-              </div>
+            <!-- ===== Website Insights (visits + most-clicked items) ===== -->
+            <h2 style="margin-top:30px;font-size:1.2rem">Website Insights</h2>
+            <p class="help">Live traffic from your website, stored in Supabase.</p>
+            <div class="insights-grid" id="insightsStats">
+              <div class="insight-card"><div class="insight-card__num" id="statVisits">—</div><div class="insight-card__label">Total visits</div></div>
+              <div class="insight-card"><div class="insight-card__num" id="statClicks">—</div><div class="insight-card__label">Item clicks</div></div>
             </div>
-
-            <!-- Migration status -->
-            <h2 style="margin-top:28px;font-size:1.2rem">Migration Status</h2>
-            <div style="margin-top:10px">
-              <div style="background:var(--bg);padding:12px 14px;border-radius:var(--radius);border:1px solid var(--line)">
-                <strong style="font-size:.9rem;color:#4ade80">✓ Everything on Supabase</strong>
-                <ul style="margin:6px 0 0 18px;font-size:.85rem;color:var(--ink-soft)">
-                  <li>Products (read &amp; write)</li>
-                  <li>Today's Pour (read &amp; write)</li>
-                  <li>Team CRUD (read &amp; write)</li>
-                  <li>Categories CRUD (read &amp; write)</li>
-                  <li>Profile editing (read &amp; write)</li>
-                  <li>Contact &amp; Order Links</li>
-                  <li>Admin login</li>
-                </ul>
-              </div>
-            </div>
-
-            <!-- Current data preview -->
-            <h2 style="margin-top:28px;font-size:1.2rem">Local Data (JSON)</h2>
-            <p class="help">Cached copy of your data in this browser.</p>
-            <div class="json-preview" id="jsonPreview"></div>
+            <h3 style="margin-top:18px;font-size:1rem">Most-clicked items</h3>
+            <div id="topItems" class="top-items"></div>
+            <button class="btn btn--ghost btn--sm" id="refreshInsightsBtn" style="margin-top:12px">Refresh insights</button>
           </div>
 
           <!-- SAVE BAR -->
@@ -1322,10 +1261,7 @@
         </div>
         <div class="field">
           <label>Product Image (optional)</label>
-          <input type="text" id="f_productImageUrl" class="image-url-input" placeholder="🔗 Paste Google Drive share URL or image URL" />
-          <div class="field__hint" style="margin-top:-6px">
-            <strong>Recommended:</strong> Upload to Google Drive → right-click → Share → "Anyone with the link" → copy link → paste above. Auto-converts to a direct image URL.
-          </div>
+          <input type="text" id="f_productImageUrl" class="image-url-input" placeholder="Image URL" hidden />
           <div id="imageDropzone" class="image-dropzone">
             <div id="imagePreviewWrap" hidden>
               <img id="imagePreview" alt="Preview" />
@@ -1333,8 +1269,8 @@
             </div>
             <div id="imageEmpty">
               <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
-              <p style="margin:8px 0 4px;font-size:.9rem">…or upload directly (stored as base64 in localStorage)</p>
-              <p class="field__hint" style="margin:0">JPG/PNG, auto-resized to 600px.</p>
+              <p style="margin:8px 0 4px;font-size:.9rem">Tap to upload a photo</p>
+              <p class="field__hint" style="margin:0">JPG/PNG, auto-resized.</p>
             </div>
             <input type="file" id="imageFileInput" accept="image/*" hidden />
           </div>
@@ -1365,8 +1301,7 @@
         </div>
         <div class="field">
           <label>Photo (optional)</label>
-          <input type="text" id="f_teamImageUrl" class="image-url-input" placeholder="🔗 Paste Google Drive share URL or image URL" />
-          <div class="field__hint" style="margin-top:-6px">Drive URL recommended. Or upload below to store as base64.</div>
+          <input type="text" id="f_teamImageUrl" class="image-url-input" placeholder="Image URL" hidden />
           <div class="image-dropzone" id="teamDropzone">
             <div id="teamPreviewWrap" hidden>
               <img id="teamPreview" alt="Preview" />
@@ -1738,35 +1673,23 @@
     categories: ['Espresso', 'Milk-Based', 'Cold', 'Flavored', 'Milk Tea', 'Fruit Tea', 'Halo-halo'],
   };
 
-  /* ---------- STATE ---------- */
+  /* ---------- STATE ----------
+     The source of truth is Supabase. State starts from in-memory defaults and is
+     filled by the initial Supabase pull (adminInitialSync) before login, then kept
+     in sync by each Save handler. No JSON/local-data cache is used. */
   let state = loadData();
   let dirty = false;
 
   function loadData() {
-    try {
-      const stored = JSON.parse(localStorage.getItem('kugon_data') || '{}');
-      return {
-        products: stored.products || JSON.parse(JSON.stringify(DEFAULT_DATA.products)),
-        contact: { ...DEFAULT_DATA.contact, ...(stored.contact || {}) },
-        orderLinks: { ...DEFAULT_DATA.orderLinks, ...(stored.orderLinks || {}) },
-        todaysPour: { ...DEFAULT_DATA.todaysPour, ...(stored.todaysPour || {}) },
-        sheets: { ...DEFAULT_DATA.sheets, ...(stored.sheets || {}) },
-        syncUrl: stored.syncUrl || '',
-        sales: stored.sales || [],
-        employees: stored.employees || [],
-        admins: (stored.admins && stored.admins.length) ? stored.admins : [...DEFAULT_DATA.admins],
-        team: (stored.team && stored.team.length) ? stored.team : JSON.parse(JSON.stringify(DEFAULT_DATA.team)),
-        categories: stored.categories || [...DEFAULT_DATA.categories],
-      };
-    } catch { return JSON.parse(JSON.stringify(DEFAULT_DATA)); }
+    // Fresh in-memory copy of the defaults; Supabase overwrites this on load.
+    return JSON.parse(JSON.stringify(DEFAULT_DATA));
   }
 
+  // Marks the in-memory state as saved and updates the status pill. Writes to the
+  // database happen in the individual dbSaveX helpers, not here.
   function saveData(opts) {
-    opts = (typeof opts === 'object' && opts !== null) ? opts : (opts === false ? { showToast: false } : {});
-    localStorage.setItem('kugon_data', JSON.stringify(state));
     dirty = false;
     updateStatus('saved');
-    refreshJsonPreview();
   }
 
   function markDirty() {
@@ -1809,19 +1732,44 @@
 
   /* ---------- LOGIN / SESSION / ROLES ---------- */
   const SESSION_KEY = 'kugon_admin_session';
+  const INACTIVITY_MS = 30 * 60 * 1000; // auto-logout after 30 minutes idle
+  let inactivityTimer = null;
 
+  // Session lives in sessionStorage, so it is automatically cleared when the
+  // browser tab is closed — a fresh tab always requires logging in again.
   function getSession() {
     try {
-      const raw = localStorage.getItem(SESSION_KEY);
+      const raw = sessionStorage.getItem(SESSION_KEY);
       if (!raw) return null;
-      // Backwards-compat with old plain "1" sessions (treat as admin)
-      if (raw === '1') return { role: 'admin', username: 'admin', name: 'Admin' };
       return JSON.parse(raw);
     } catch { return null; }
   }
   function setSession(session) {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
   }
+  function clearSession() {
+    sessionStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(SESSION_KEY); // clear any legacy localStorage session
+  }
+
+  // ----- Inactivity auto-logout -----
+  function resetInactivityTimer() {
+    clearTimeout(inactivityTimer);
+    if (!getSession()) return;
+    inactivityTimer = setTimeout(expireSession, INACTIVITY_MS);
+  }
+  function expireSession() {
+    if (!getSession()) return;
+    clearSession();
+    clearTimeout(inactivityTimer);
+    document.getElementById('adminScreen').hidden = true;
+    document.getElementById('loginScreen').hidden = false;
+    const notice = document.getElementById('sessionExpiredNotice');
+    if (notice) notice.hidden = false;
+  }
+  // Any of these interactions counts as activity and restarts the idle clock.
+  ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'].forEach(ev =>
+    document.addEventListener(ev, resetInactivityTimer, { passive: true }));
 
   function checkSession() {
     const s = getSession();
@@ -1856,6 +1804,9 @@
     if (!session) return;
     document.getElementById('loginScreen').hidden = true;
     document.getElementById('adminScreen').hidden = false;
+    const notice = document.getElementById('sessionExpiredNotice');
+    if (notice) notice.hidden = true;
+    resetInactivityTimer(); // begin counting idle time
     applyRole(session);
     // Each render wrapped so one failure doesn't break the others
     const safe = (label, fn) => { try { fn(); } catch (e) { console.error('Render ' + label + ' failed:', e); } };
@@ -1865,7 +1816,6 @@
     safe('team', renderTeam);
     safe('profile', renderProfile);
     safe('todaysPour', renderTodaysPour);
-    safe('jsonPreview', refreshJsonPreview);
     safe('sheetsStatus', refreshSheetsStatus);
   }
 
@@ -1911,7 +1861,7 @@
 
   /* Logout */
   document.getElementById('logoutBtn').addEventListener('click', () => {
-    localStorage.removeItem(SESSION_KEY);
+    clearSession();
     location.reload();
   });
 
@@ -1927,7 +1877,7 @@
       document.querySelectorAll('[data-panel]').forEach(p => {
         p.hidden = p.dataset.panel !== tab;
       });
-      if (tab === 'drive') refreshJsonPreview();
+      if (tab === 'drive') { refreshSheetsStatus(); renderInsights(); }
     });
   });
 
@@ -2026,10 +1976,8 @@
 
       state.contact = contact;
       state.orderLinks = orderLinks;
-      localStorage.setItem('kugon_data', JSON.stringify(state));
       dirty = false;
       updateStatus('saved');
-      refreshJsonPreview();
       finishSyncBanner('ok');
       toast('Saved', 'success');
     } catch (err) {
@@ -2042,17 +1990,6 @@
       btn.style.cursor = '';
       btn.textContent = originalText;
     }
-  });
-
-  /* ---------- RESET ---------- */
-  $('resetBtn').addEventListener('click', () => {
-    if (!confirm('Reset everything to defaults? Current edits will be lost (unless you exported a backup).')) return;
-    localStorage.removeItem('kugon_data');
-    state = loadData();
-    populateForms();
-    renderProductList();
-    refreshJsonPreview();
-    toast('Reset to defaults', 'success');
   });
 
   /* ---------- PRODUCTS ---------- */
@@ -2099,6 +2036,15 @@
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // Initials from a name, e.g. "Maria Santos" -> "MS". Used for avatar/team
+  // placeholders when no photo is set. (Its absence was the cause of the
+  // "team not showing" bug and the "initials is not defined" refresh error.)
+  function initials(name) {
+    return String(name || '')
+      .split(/\s+/).filter(Boolean).slice(0, 2)
+      .map(s => s[0].toUpperCase()).join('') || '?';
   }
 
   // Format YYYY-MM-DD → "Jun 5, 2026"
@@ -2321,22 +2267,10 @@
      IMAGE UPLOAD — shared helpers (used by Product, Profile, Team)
   ========================================================= */
 
-  // Convert a Google Drive sharing URL to a direct-image URL.
-  // Returns the original URL unchanged if it's not a Drive URL.
+  // Normalize a pasted image URL. (Image URL fields are hidden in the UI; this
+  // just trims whatever value is synced internally by the dropzone.)
   function normalizeImageUrl(url) {
-    if (!url) return '';
-    url = String(url).trim();
-    // https://drive.google.com/file/d/FILE_ID/view?usp=sharing
-    let m = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-    if (m) return `https://lh3.googleusercontent.com/d/${m[1]}=w1200`;
-    // https://drive.google.com/open?id=FILE_ID
-    m = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
-    if (m) return `https://lh3.googleusercontent.com/d/${m[1]}=w1200`;
-    // https://drive.google.com/uc?id=FILE_ID or ?export=view&id=FILE_ID
-    m = url.match(/drive\.google\.com\/uc\?(?:[^&]*&)*id=([a-zA-Z0-9_-]+)/);
-    if (m) return `https://lh3.googleusercontent.com/d/${m[1]}=w1200`;
-    // Already a direct URL, base64, or relative path — return unchanged
-    return url;
+    return url ? String(url).trim() : '';
   }
 
   function resizeImageFile(file, maxDim, quality) {
@@ -2399,9 +2333,9 @@
     async function handleFile(file) {
       try {
         const dataUrl = await resizeImageFile(file, cfg.maxDim || 600, cfg.quality || 0.82);
-        // Show base64 preview locally. Actual Drive upload happens on Save Changes.
+        // Show a local preview; the actual upload to Supabase Storage happens on Save.
         show(dataUrl);
-        toast('Image attached — click Save Changes to upload to Drive', 'success');
+        toast('Image attached — click Save to upload', 'success');
       } catch (err) {
         toast(err.message, 'error');
       }
@@ -2424,7 +2358,7 @@
     });
     removeBtn.addEventListener('click', () => show(null));
 
-    // URL input: paste a Google Drive sharing link, auto-convert and preview
+    // Hidden URL input: kept for internal syncing; pass values through as-is
     if (urlInput) {
       urlInput.addEventListener('blur', () => {
         const raw = urlInput.value.trim();
@@ -2561,51 +2495,6 @@
     if (e.key === 'Escape') document.querySelectorAll('.modal.is-open').forEach(m => m.classList.remove('is-open'));
   });
 
-  /* ---------- EXPORT / IMPORT JSON ---------- */
-  $('exportBtn').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'kugon-data.json';
-    a.click();
-    URL.revokeObjectURL(url);
-    toast('Downloaded kugon-data.json — upload to Google Drive next', 'success');
-  });
-
-  $('importBtn').addEventListener('click', () => $('importFile').click());
-  $('importFile').addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      try {
-        const imported = JSON.parse(ev.target.result);
-        state = {
-          products: imported.products || DEFAULT_DATA.products,
-          contact: { ...DEFAULT_DATA.contact, ...(imported.contact || {}) },
-          orderLinks: { ...DEFAULT_DATA.orderLinks, ...(imported.orderLinks || {}) },
-          todaysPour: { ...DEFAULT_DATA.todaysPour, ...(imported.todaysPour || {}) },
-          sheets: { ...DEFAULT_DATA.sheets, ...(imported.sheets || {}) },
-          syncUrl: imported.syncUrl || '',
-          sales: imported.sales || [],
-          employees: imported.employees || [],
-          admins: (imported.admins && imported.admins.length) ? imported.admins : [...DEFAULT_DATA.admins],
-          team: (imported.team && imported.team.length) ? imported.team : JSON.parse(JSON.stringify(DEFAULT_DATA.team)),
-          categories: imported.categories || [...DEFAULT_DATA.categories],
-        };
-        populateForms();
-        renderProductList();
-        saveData();
-        toast('JSON imported successfully', 'success');
-      } catch (err) {
-        toast('Invalid JSON file', 'error');
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
-  });
-
   /* =========================================================
      SUPABASE — Refresh data (replaces Sheets sync UI)
   ========================================================= */
@@ -2636,6 +2525,40 @@
     }
   }
 
+  /* =========================================================
+     WEBSITE INSIGHTS — reads the `metrics` table in Supabase.
+     The live site bumps counters via the bump_metric() RPC:
+       key 'visits'        -> total site visits
+       key 'product:<id>'  -> clicks per product (label = product name)
+  ========================================================= */
+  async function renderInsights() {
+    const vEl = $('statVisits'), cEl = $('statClicks'), tEl = $('topItems');
+    if (!vEl) return;
+    vEl.textContent = '…'; cEl.textContent = '…'; tEl.innerHTML = '';
+    try {
+      const { data, error } = await sb.from('metrics').select('*');
+      if (error) throw new Error(error.message);
+      const rows = data || [];
+      const visits = rows.find(r => r.key === 'visits');
+      vEl.textContent = visits ? Number(visits.count).toLocaleString() : '0';
+
+      const items = rows.filter(r => r.key && r.key.startsWith('product:'))
+                        .sort((a, b) => Number(b.count) - Number(a.count));
+      const totalClicks = items.reduce((s, r) => s + Number(r.count || 0), 0);
+      cEl.textContent = totalClicks.toLocaleString();
+
+      tEl.innerHTML = items.length
+        ? items.slice(0, 10).map((r, i) =>
+            `<div class="top-item"><span>${i + 1}. ${escapeHtml(r.label || r.key.replace('product:', ''))}</span><span class="top-item__count">${Number(r.count).toLocaleString()}</span></div>`
+          ).join('')
+        : '<p class="help">No item clicks recorded yet.</p>';
+    } catch (e) {
+      vEl.textContent = '—'; cEl.textContent = '—';
+      tEl.innerHTML = `<p class="help">Couldn't load insights: ${escapeHtml(e.message)} — make sure you've run the metrics setup SQL.</p>`;
+    }
+  }
+  $('refreshInsightsBtn')?.addEventListener('click', renderInsights);
+
   $('refreshDataBtn')?.addEventListener('click', async () => {
     setSheetsStatus('loading', 'Refreshing from Supabase…');
     try {
@@ -2658,7 +2581,6 @@
       renderProductList();
       renderTeam();
       renderTodaysPour();
-      refreshJsonPreview();
       setSheetsStatus('ok', '✓ Refreshed', new Date().toLocaleString());
       toast('Data refreshed from Supabase ✓', 'success');
     } catch (err) {
@@ -2667,11 +2589,6 @@
       toast('Refresh failed: ' + err.message, 'error');
     }
   });
-
-  function refreshJsonPreview() {
-    const el = $('jsonPreview');
-    if (el) el.textContent = JSON.stringify(state, null, 2);
-  }
 
   /* =========================================================
      TODAY'S POUR (featured drink in hero)
@@ -3117,7 +3034,6 @@
         categories: (r.categories && r.categories.length) ? r.categories : state.categories,
       };
       state.sheets.lastPull = new Date().toISOString();
-      localStorage.setItem('kugon_data', JSON.stringify(state));
       finishSyncBanner('ok');
     } catch (err) {
       console.warn('Initial sync failed:', err);

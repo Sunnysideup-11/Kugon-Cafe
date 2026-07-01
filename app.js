@@ -36,6 +36,32 @@ function imgSrc(val) {
 // Legacy — kept for backward compat with admin.html localStorage shape, unused for fetching
 const APPS_SCRIPT_URL = '';
 
+/* =========================================================
+   WEBSITE TRACKING
+   Records traffic in the Supabase `metrics` table via the
+   bump_metric() RPC (atomic +1). Best-effort & non-blocking:
+   any failure is swallowed so it never affects the page.
+     bumpMetric('visits')                -> total site visits
+     bumpMetric('product:'+id, name)     -> clicks per product
+========================================================= */
+function bumpMetric(key, label) {
+  if (!sb || !key) return;
+  try {
+    sb.rpc('bump_metric', { p_key: key, p_label: label || null })
+      .then(({ error }) => { if (error) console.debug('metric skipped:', error.message); });
+  } catch (e) { /* ignore */ }
+}
+
+// Count one visit per browser tab session (so reloads don't inflate the count).
+function trackVisitOnce() {
+  try {
+    if (sessionStorage.getItem('kugon_visit_counted')) return;
+    sessionStorage.setItem('kugon_visit_counted', '1');
+  } catch (e) { /* sessionStorage unavailable — count anyway */ }
+  bumpMetric('visits');
+}
+trackVisitOnce();
+
 /* ---------- DEFAULT DATA ---------- */
 const DEFAULT_PRODUCTS = [
   { id: 'p1', name: 'Espresso', category: 'Espresso', price: 110, color: '#3a1f0f',
@@ -427,6 +453,7 @@ document.getElementById('sortSelect').addEventListener('change', e => {
 function openProductDetail(id) {
   const p = PRODUCTS.find(x => x.id === id);
   if (!p) return;
+  bumpMetric('product:' + p.id, p.name); // record this item click
   const el = document.getElementById('productDetail');
   const visual = p.image
     ? `<img src="${imgSrc(p.image)}" class="product-detail__photo" alt="${p.name}" />`
